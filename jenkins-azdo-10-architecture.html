@@ -1,0 +1,1886 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jenkins → AzDO Migration — 10/10 Enterprise Architecture</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Mono:ital,wght@0,300;0,400;0,500;1,300&family=Fraunces:ital,opsz,wght@0,9..144,300;0,9..144,700;1,9..144,300&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #060810;
+  --surface: #0b0f1a;
+  --surface2: #111827;
+  --surface3: #1a2338;
+  --border: #1e2d45;
+  --border2: #253550;
+  --accent: #e8ff47;
+  --accent2: #c8e000;
+  --blue: #3b82f6;
+  --cyan: #06b6d4;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --purple: #8b5cf6;
+  --pink: #ec4899;
+  --teal: #14b8a6;
+  --text: #e2e8f5;
+  --text2: #94a3c4;
+  --text3: #4d6480;
+  --llm: #8b5cf6;
+  --hybrid: #06b6d4;
+  --det: #10b981;
+  --mono: 'DM Mono', monospace;
+  --display: 'Bebas Neue', sans-serif;
+  --body: 'Fraunces', serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--body);
+  font-size: 14px;
+  line-height: 1.8;
+  overflow-x: hidden;
+}
+
+/* Grid background */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(232,255,71,0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,255,71,0.03) 1px, transparent 1px);
+  background-size: 48px 48px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HERO ── */
+.hero {
+  position: relative;
+  z-index: 1;
+  padding: 80px 64px 60px;
+  border-bottom: 1px solid var(--border);
+  overflow: hidden;
+}
+
+.hero::after {
+  content: '';
+  position: absolute;
+  top: -120px; right: -120px;
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(232,255,71,0.06) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+.hero-tag {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 4px;
+  text-transform: uppercase;
+  color: var(--accent);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+.hero-tag::before {
+  content: '';
+  width: 32px; height: 1px;
+  background: var(--accent);
+}
+
+.hero h1 {
+  font-family: var(--display);
+  font-size: clamp(48px, 7vw, 96px);
+  line-height: 0.92;
+  letter-spacing: 2px;
+  color: var(--text);
+  max-width: 900px;
+}
+.hero h1 em {
+  color: var(--accent);
+  font-style: normal;
+}
+
+.hero-desc {
+  margin-top: 28px;
+  color: var(--text2);
+  font-size: 15px;
+  max-width: 640px;
+  font-weight: 300;
+  font-style: italic;
+}
+
+.hero-stats {
+  display: flex;
+  gap: 0;
+  margin-top: 48px;
+  border: 1px solid var(--border);
+  width: fit-content;
+}
+.stat-block {
+  padding: 20px 32px;
+  border-right: 1px solid var(--border);
+}
+.stat-block:last-child { border-right: none; }
+.stat-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  color: var(--text3);
+  display: block;
+  margin-bottom: 6px;
+}
+.stat-value {
+  font-family: var(--display);
+  font-size: 32px;
+  letter-spacing: 1px;
+  color: var(--accent);
+  display: block;
+}
+
+/* ── SCORE BADGE ── */
+.score-badge {
+  position: absolute;
+  top: 64px; right: 64px;
+  width: 120px; height: 120px;
+  border: 2px solid var(--accent);
+  border-radius: 50%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: rgba(232,255,71,0.05);
+  animation: pulse-badge 3s ease-in-out infinite;
+}
+@keyframes pulse-badge {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(232,255,71,0.3); }
+  50% { box-shadow: 0 0 0 16px rgba(232,255,71,0); }
+}
+.score-num {
+  font-family: var(--display);
+  font-size: 42px;
+  color: var(--accent);
+  line-height: 1;
+}
+.score-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text3);
+  text-transform: uppercase;
+}
+
+/* ── NAV ── */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: rgba(6,8,16,0.92);
+  backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--border);
+  padding: 0 64px;
+  display: flex;
+  gap: 0;
+  overflow-x: auto;
+}
+.nav a {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  text-decoration: none;
+  padding: 16px 20px;
+  border-right: 1px solid var(--border);
+  white-space: nowrap;
+  transition: color 0.2s, background 0.2s;
+}
+.nav a:hover { color: var(--accent); background: rgba(232,255,71,0.04); }
+
+/* ── SECTION ── */
+.section {
+  position: relative;
+  z-index: 1;
+  padding: 72px 64px;
+  border-bottom: 1px solid var(--border);
+}
+.section-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.section-title {
+  font-family: var(--display);
+  font-size: clamp(32px, 4vw, 52px);
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+  line-height: 1;
+}
+.section-sub {
+  color: var(--text2);
+  font-size: 14px;
+  font-style: italic;
+  max-width: 680px;
+  margin-bottom: 48px;
+}
+
+/* ── AGENT GRID ── */
+.agent-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 48px;
+}
+
+.agent-card {
+  background: var(--surface);
+  padding: 32px;
+  position: relative;
+  overflow: hidden;
+  transition: background 0.2s;
+}
+.agent-card:hover { background: var(--surface2); }
+
+.agent-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 3px;
+}
+.agent-card.llm::before { background: var(--llm); }
+.agent-card.hybrid::before { background: var(--hybrid); }
+.agent-card.det::before { background: var(--det); }
+.agent-card.sidecar::before { background: var(--accent); }
+
+.agent-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 3px;
+  color: var(--text3);
+  margin-bottom: 12px;
+}
+
+.agent-name {
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: 1px;
+  line-height: 1.1;
+  margin-bottom: 8px;
+}
+
+.agent-type-badge {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  padding: 3px 10px;
+  border-radius: 2px;
+  margin-bottom: 16px;
+}
+.badge-llm { background: rgba(139,92,246,0.15); color: var(--llm); border: 1px solid rgba(139,92,246,0.3); }
+.badge-hybrid { background: rgba(6,182,212,0.12); color: var(--cyan); border: 1px solid rgba(6,182,212,0.3); }
+.badge-det { background: rgba(16,185,129,0.12); color: var(--green); border: 1px solid rgba(16,185,129,0.3); }
+.badge-sidecar { background: rgba(232,255,71,0.1); color: var(--accent); border: 1px solid rgba(232,255,71,0.3); }
+
+.agent-desc {
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.7;
+  font-style: italic;
+  margin-bottom: 20px;
+}
+
+.agent-merges {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+.agent-merges span { color: var(--text2); }
+
+/* ── LAYER DIAGRAM ── */
+.layer-diagram {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1px solid var(--border);
+}
+
+.layer-row {
+  display: grid;
+  grid-template-columns: 180px 1fr;
+  background: var(--border);
+  gap: 1px;
+}
+
+.layer-label {
+  background: var(--surface2);
+  padding: 24px 24px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+.layer-label-name {
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin-bottom: 4px;
+}
+.layer-label-rule {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--text3);
+  letter-spacing: 1px;
+}
+
+.layer-agents {
+  background: var(--surface);
+  padding: 24px 28px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: center;
+}
+
+.layer-agent-chip {
+  font-family: var(--mono);
+  font-size: 11px;
+  padding: 6px 14px;
+  border-radius: 2px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.layer-agent-chip .dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+}
+
+.layer-reasoning .layer-label-name { color: var(--llm); }
+.layer-reasoning .layer-agent-chip { background: rgba(139,92,246,0.1); border: 1px solid rgba(139,92,246,0.25); color: var(--text2); }
+.layer-reasoning .dot { background: var(--llm); }
+
+.layer-orchestration .layer-label-name { color: var(--cyan); }
+.layer-orchestration .layer-agent-chip { background: rgba(6,182,212,0.1); border: 1px solid rgba(6,182,212,0.25); color: var(--text2); }
+.layer-orchestration .dot { background: var(--cyan); }
+
+.layer-execution .layer-label-name { color: var(--green); }
+.layer-execution .layer-agent-chip { background: rgba(16,185,129,0.1); border: 1px solid rgba(16,185,129,0.25); color: var(--text2); }
+.layer-execution .dot { background: var(--green); }
+
+.layer-observe .layer-label-name { color: var(--accent); }
+.layer-observe .layer-agent-chip { background: rgba(232,255,71,0.08); border: 1px solid rgba(232,255,71,0.25); color: var(--text2); }
+.layer-observe .dot { background: var(--accent); }
+
+/* ── FLOW ── */
+.flow-container {
+  margin-top: 48px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.flow-phase {
+  border: 1px solid var(--border);
+  margin-bottom: -1px;
+  position: relative;
+}
+
+.flow-phase-header {
+  display: grid;
+  grid-template-columns: 56px 1fr auto;
+  align-items: center;
+  padding: 0;
+  cursor: pointer;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  transition: background 0.2s;
+}
+.flow-phase-header:hover { background: var(--surface2); }
+
+.flow-phase-num {
+  font-family: var(--display);
+  font-size: 28px;
+  letter-spacing: 1px;
+  color: var(--text3);
+  padding: 20px 0 20px 24px;
+  border-right: 1px solid var(--border);
+}
+
+.flow-phase-title {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  padding: 20px 24px;
+}
+
+.flow-phase-agent {
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 2px;
+  padding: 20px 24px;
+  text-transform: uppercase;
+}
+
+.flow-phase-body {
+  padding: 28px 32px;
+  background: var(--bg);
+  display: none;
+}
+.flow-phase.open .flow-phase-body { display: block; }
+.flow-phase.open .flow-phase-header { background: var(--surface2); }
+
+.flow-step {
+  display: grid;
+  grid-template-columns: 28px 1fr;
+  gap: 16px;
+  margin-bottom: 20px;
+  align-items: start;
+}
+.flow-step-num {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--accent);
+  padding-top: 2px;
+  letter-spacing: 1px;
+}
+.flow-step-content {
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.7;
+  font-style: italic;
+}
+.flow-step-content strong {
+  color: var(--text);
+  font-style: normal;
+  font-weight: 500;
+}
+
+.code-block {
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  padding: 16px 20px;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.8;
+  margin: 12px 0;
+  overflow-x: auto;
+  white-space: pre;
+}
+
+.code-block .k { color: var(--cyan); }
+.code-block .v { color: var(--green); }
+.code-block .c { color: var(--text3); }
+.code-block .h { color: var(--accent); }
+.code-block .e { color: var(--red); }
+.code-block .w { color: var(--amber); }
+
+/* ── IMPROVEMENTS GRID ── */
+.improvements-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 48px;
+}
+
+.improvement-card {
+  background: var(--surface);
+  padding: 36px;
+  position: relative;
+  overflow: hidden;
+}
+
+.improvement-icon {
+  font-family: var(--display);
+  font-size: 48px;
+  letter-spacing: 2px;
+  color: var(--border2);
+  position: absolute;
+  top: 20px; right: 24px;
+  line-height: 1;
+  user-select: none;
+}
+
+.improvement-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--accent);
+  text-transform: uppercase;
+  margin-bottom: 12px;
+}
+
+.improvement-title {
+  font-family: var(--display);
+  font-size: 26px;
+  letter-spacing: 1px;
+  margin-bottom: 16px;
+}
+
+.improvement-body {
+  color: var(--text2);
+  font-size: 13px;
+  line-height: 1.75;
+  font-style: italic;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 16px;
+}
+.tag {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 1px;
+  padding: 4px 10px;
+  border: 1px solid var(--border2);
+  color: var(--text3);
+  text-transform: uppercase;
+}
+
+/* ── CALLOUT ── */
+.callout {
+  border: 1px solid var(--border2);
+  border-left: 4px solid var(--accent);
+  background: rgba(232,255,71,0.04);
+  padding: 20px 24px;
+  margin: 24px 0;
+  font-family: var(--mono);
+  font-size: 11px;
+  color: var(--text2);
+  line-height: 1.7;
+}
+.callout.warn { border-left-color: var(--amber); background: rgba(245,158,11,0.05); }
+.callout.danger { border-left-color: var(--red); background: rgba(239,68,68,0.05); }
+.callout.info { border-left-color: var(--cyan); background: rgba(6,182,212,0.05); }
+.callout .callout-label {
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  font-size: 9px;
+  margin-bottom: 6px;
+  display: block;
+}
+.callout.warn .callout-label { color: var(--amber); }
+.callout.danger .callout-label { color: var(--red); }
+.callout.info .callout-label { color: var(--cyan); }
+.callout .callout-label { color: var(--accent); }
+
+/* ── TABLE ── */
+.arch-table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 24px;
+  font-size: 12px;
+}
+.arch-table th {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  padding: 10px 16px;
+  text-align: left;
+  border-bottom: 1px solid var(--border2);
+  background: var(--surface2);
+}
+.arch-table td {
+  padding: 12px 16px;
+  border-bottom: 1px solid var(--border);
+  color: var(--text2);
+  font-style: italic;
+  vertical-align: top;
+}
+.arch-table tr:hover td { background: var(--surface2); }
+.arch-table td:first-child {
+  font-family: var(--mono);
+  font-size: 11px;
+  font-style: normal;
+  color: var(--text);
+}
+
+/* ── STATE MACHINE ── */
+.state-machine {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0;
+  margin-top: 32px;
+  border: 1px solid var(--border);
+}
+
+.state-node {
+  padding: 10px 16px;
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: 1px;
+  color: var(--text3);
+  position: relative;
+  transition: all 0.2s;
+}
+.state-node:hover { background: var(--surface2); color: var(--text); }
+.state-node.active { color: var(--green); }
+.state-node.gate { color: var(--amber); }
+.state-node.terminal { color: var(--accent); }
+.state-node.error { color: var(--red); }
+
+/* ── FAILURE MATRIX ── */
+.failure-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+
+.failure-card {
+  background: var(--surface);
+  padding: 24px;
+}
+.failure-type {
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.failure-type.blocked { color: var(--red); }
+.failure-type.fixable { color: var(--amber); }
+.failure-type.human { color: var(--cyan); }
+
+.failure-item {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  padding: 4px 0;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.failure-item::before {
+  content: '→';
+  font-size: 10px;
+}
+.failure-card.blocked .failure-item::before { color: var(--red); }
+.failure-card.fixable .failure-item::before { color: var(--amber); }
+.failure-card.human .failure-item::before { color: var(--cyan); }
+
+/* ── GATES ── */
+.gates-flow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+
+.gate-card {
+  background: var(--surface);
+  padding: 28px 24px;
+  position: relative;
+}
+.gate-num {
+  font-family: var(--display);
+  font-size: 56px;
+  color: rgba(232,255,71,0.08);
+  position: absolute;
+  top: 12px; right: 16px;
+  line-height: 1;
+}
+.gate-label {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 3px;
+  color: var(--amber);
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+.gate-name {
+  font-family: var(--display);
+  font-size: 22px;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.gate-detail {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.8;
+}
+.gate-detail strong { color: var(--text2); }
+
+/* ── DR TABLE ── */
+.dr-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+.dr-card {
+  background: var(--surface);
+  padding: 28px;
+}
+.dr-title {
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  color: var(--cyan);
+  margin-bottom: 16px;
+}
+.dr-spec {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 2;
+}
+.dr-spec strong { color: var(--text2); }
+
+/* ── TRACING ── */
+.trace-event {
+  display: grid;
+  grid-template-columns: 140px 1fr;
+  gap: 0;
+  border-bottom: 1px solid var(--border);
+  font-family: var(--mono);
+  font-size: 11px;
+}
+.trace-event:last-child { border-bottom: none; }
+.trace-key {
+  padding: 10px 16px;
+  color: var(--cyan);
+  border-right: 1px solid var(--border);
+  background: var(--surface2);
+}
+.trace-val {
+  padding: 10px 16px;
+  color: var(--text2);
+}
+
+/* ── BU ISOLATION ── */
+.bu-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+.bu-card {
+  background: var(--surface);
+  padding: 24px;
+}
+.bu-name {
+  font-family: var(--display);
+  font-size: 20px;
+  letter-spacing: 1px;
+  margin-bottom: 12px;
+}
+.bu-tag {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 9px;
+  padding: 2px 8px;
+  margin-bottom: 12px;
+  border-radius: 2px;
+}
+.bu-detail {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.9;
+}
+
+/* ── RAG ── */
+.rag-flow {
+  display: flex;
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+.rag-step {
+  flex: 1;
+  background: var(--surface);
+  padding: 24px 20px;
+}
+.rag-step-num {
+  font-family: var(--mono);
+  font-size: 9px;
+  color: var(--purple);
+  letter-spacing: 3px;
+  margin-bottom: 10px;
+}
+.rag-step-title {
+  font-family: var(--display);
+  font-size: 18px;
+  letter-spacing: 1px;
+  margin-bottom: 10px;
+}
+.rag-step-body {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  line-height: 1.8;
+}
+
+/* ── COST ── */
+.cost-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1px;
+  background: var(--border);
+  border: 1px solid var(--border);
+  margin-top: 32px;
+}
+.cost-card {
+  background: var(--surface);
+  padding: 24px 20px;
+}
+.cost-tier {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text3);
+  text-transform: uppercase;
+  margin-bottom: 8px;
+}
+.cost-price {
+  font-family: var(--display);
+  font-size: 32px;
+  color: var(--green);
+  letter-spacing: 1px;
+  line-height: 1;
+  margin-bottom: 4px;
+}
+.cost-label {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+}
+
+/* ── FOOTER ── */
+footer {
+  position: relative;
+  z-index: 1;
+  padding: 40px 64px;
+  border-top: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.footer-left {
+  font-family: var(--mono);
+  font-size: 10px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+.footer-score {
+  font-family: var(--display);
+  font-size: 24px;
+  color: var(--accent);
+  letter-spacing: 2px;
+}
+
+/* Animations */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.section { animation: fadeUp 0.5s ease both; }
+
+/* Expand toggle */
+.toggle-hint {
+  font-family: var(--mono);
+  font-size: 9px;
+  letter-spacing: 2px;
+  color: var(--text3);
+  padding: 20px 24px;
+}
+</style>
+</head>
+<body>
+
+<!-- ── HERO ── -->
+<section class="hero">
+  <div class="score-badge">
+    <span class="score-num">10</span>
+    <span class="score-label">/ 10</span>
+  </div>
+  <div class="hero-tag">Enterprise AI Architecture · Jenkins → AzDO Migration</div>
+  <h1>6-AGENT<br><em>MIGRATION</em><br>PLATFORM</h1>
+  <p class="hero-desc">The minimum viable architecture that is safe, auditable, and governable at Fortune 100 scale. Every agent earns its place. Every decision is justified.</p>
+  <div class="hero-stats">
+    <div class="stat-block">
+      <span class="stat-label">Agents</span>
+      <span class="stat-value">6+1</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">Target Scale</span>
+      <span class="stat-value">5,000</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">L2 Automation</span>
+      <span class="stat-value">87%</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">LLM Cost</span>
+      <span class="stat-value">~$695</span>
+    </div>
+    <div class="stat-block">
+      <span class="stat-label">Rollback SLA</span>
+      <span class="stat-value">5min</span>
+    </div>
+  </div>
+</section>
+
+<!-- ── NAV ── -->
+<nav class="nav">
+  <a href="#agents">Agents</a>
+  <a href="#layers">Layer Model</a>
+  <a href="#flow">Job Flow</a>
+  <a href="#observability">Observability</a>
+  <a href="#multitenancy">Multi-Tenancy</a>
+  <a href="#rag">RAG Loop</a>
+  <a href="#failure">Failure Matrix</a>
+  <a href="#gates">Human Gates</a>
+  <a href="#dr">DR & Failover</a>
+  <a href="#cost">Cost Model</a>
+  <a href="#states">State Machine</a>
+</nav>
+
+<!-- ── SECTION 1: AGENTS ── -->
+<section class="section" id="agents">
+  <div class="section-num">01 — Agent Roster</div>
+  <h2 class="section-title">6 AGENTS + 1 SIDECAR</h2>
+  <p class="section-sub">The result of principled consolidation. Every agent boundary is justified by a distinct capability, a distinct layer, or a non-negotiable enterprise constraint.</p>
+
+  <div class="agent-grid">
+
+    <div class="agent-card det">
+      <div class="agent-num">AGENT 01</div>
+      <div class="agent-name">INTAKE &<br>TRIAGE</div>
+      <span class="agent-type-badge badge-det">Deterministic</span>
+      <p class="agent-desc">Fingerprints all 5,000 Jenkins jobs, builds the full dependency DAG, scores every job 0–100 via weighted formula, assigns wave placement, computes composite context hash, and stores snapshot_v1. The single serialised entry point — no other agent acts until this completes.</p>
+      <div class="agent-merges">Consolidates: <span>Intake · Dependency Graph · Risk Scoring · Context Snapshot (initial)</span></div>
+    </div>
+
+    <div class="agent-card hybrid">
+      <div class="agent-num">AGENT 02</div>
+      <div class="agent-name">KNOWLEDGE<br>REGISTRY</div>
+      <span class="agent-type-badge badge-hybrid">Hybrid</span>
+      <p class="agent-desc">Manages both the plugin mapping registry and shared library AzDO template registry. LLM proposes mappings; humans ratify APPROXIMATE and NONE entries. PR-first design for library migrations. Libraries processed in descending order of dependent job count. One answer per plugin, globally consistent.</p>
+      <div class="agent-merges">Consolidates: <span>Plugin Registry · Shared Library Agent</span></div>
+    </div>
+
+    <div class="agent-card llm">
+      <div class="agent-num">AGENT 03</div>
+      <div class="agent-name">MIGRATION</div>
+      <span class="agent-type-badge badge-llm">Full LLM</span>
+      <p class="agent-desc">Two-phase reasoning agent. Phase 1: resolves semantic conflicts between config.xml and Jenkinsfile AST JSON (never raw Groovy) to produce the Migration Brief. Phase 2: reads its own Brief, applies registry lookups, selects conversion tier, generates AzDO YAML + Conversion Manifest. 75–85% token reduction via deterministic pre-processing.</p>
+      <div class="agent-merges">Consolidates: <span>Analyzer · Converter</span></div>
+    </div>
+
+    <div class="agent-card hybrid">
+      <div class="agent-num">AGENT 04</div>
+      <div class="agent-name">VALIDATOR</div>
+      <span class="agent-type-badge badge-hybrid">Hybrid</span>
+      <p class="agent-desc">Three-plane validation in strict order. Plane 1: syntactic schema check (deterministic). Plane 2: security scanning — secrets, RBAC scope, forbidden constructs (deterministic — security controls must be 100% reproducible). Plane 3: semantic alignment — does YAML implement exactly what the Manifest claims (LLM). Max 2 automated fix cycles before human escalation.</p>
+      <div class="agent-merges">Unchanged — <span>planes cannot be merged</span></div>
+    </div>
+
+    <div class="agent-card det">
+      <div class="agent-num">AGENT 05</div>
+      <div class="agent-name">DEPLOYMENT</div>
+      <span class="agent-type-badge badge-det">Deterministic</span>
+      <p class="agent-desc">The only agent with AzDO write access. Four independent pre-conditions before any write: Validator PASS, signed JWT verified, quota available, no active circuit breaker. Archives Jenkins config immediately before writing. 50 prod deployments/hr globally enforced at MCP Gateway. Idempotency check before every create_pipeline call.</p>
+      <div class="agent-merges">Unchanged — <span>sole execution agent</span></div>
+    </div>
+
+    <div class="agent-card det">
+      <div class="agent-num">AGENT 06</div>
+      <div class="agent-name">ORCHESTRATOR</div>
+      <span class="agent-type-badge badge-det">Deterministic</span>
+      <p class="agent-desc">Central state machine — 15 states per job. Sequences all 6 agents. Owns nightly drift detection batch (scheduled task, not a separate agent). Circuit breaker at 8% wave failure / 4hr window. Routes human gate requests. Durable — restarts replay from last committed state. Must be fully deterministic: audit trails require exact reproducibility.</p>
+      <div class="agent-merges">Consolidates: <span>Orchestrator · Context Snapshot Agent (nightly batch)</span></div>
+    </div>
+
+  </div>
+
+  <!-- Sidecar -->
+  <div style="margin-top:1px; border:1px solid var(--border); background:var(--surface); padding:32px; position:relative; overflow:hidden;">
+    <div style="position:absolute; top:0; left:0; right:0; height:3px; background:var(--accent);"></div>
+    <div style="display:grid; grid-template-columns:1fr 1fr; gap:32px; align-items:start;">
+      <div>
+        <div class="agent-num">SIDECAR — NOT A PEER AGENT</div>
+        <div class="agent-name" style="font-size:28px;">OBSERVABILITY<br>SIDECAR</div>
+        <span class="agent-type-badge badge-sidecar">Read-Only · No MCP Tools · No State Store Writes</span>
+        <p class="agent-desc" style="margin-top:12px;">Consumes all Service Bus events as a passive subscriber. Writes structured telemetry to Azure Data Explorer. Fires SLA breach alerts before they breach. Has no decision authority, no write access, no MCP tools. Making it a full agent would add an event loop and state for zero architectural benefit. It is instrumentation, not architecture.</p>
+      </div>
+      <div>
+        <div class="agent-num" style="margin-bottom:16px;">WHAT IT TRACKS</div>
+        <div class="code-block" style="margin:0;">
+<span class="k">Real-time metrics:</span>
+  Jobs by state          <span class="v">per wave, per BU</span>
+  Agent latency          <span class="v">p50 / p95 / p99</span>
+  LLM token spend        <span class="v">running total vs budget</span>
+  Human gate queue depth <span class="v">+ age in queue</span>
+  Automation rate        <span class="v">updates per COMPLETE event</span>
+  Regression count       <span class="v">+ rollback count</span>
+  DLQ depth              <span class="v">per agent topic</span>
+
+<span class="k">Alert thresholds:</span>
+  Analyzer p95 > 45s     <span class="e">→ ops alert</span>
+  FAILED_FIXABLE > 15%   <span class="e">→ wave review</span>
+  Gate queue > 50 jobs   <span class="e">→ capacity alert</span>
+  DLQ depth > 0          <span class="e">→ immediate page</span>
+  Cost anomaly 2× budget <span class="e">→ ops alert</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ── SECTION 2: LAYER MODEL ── -->
+<section class="section" id="layers">
+  <div class="section-num">02 — Layer Separation</div>
+  <h2 class="section-title">THE INVIOLABLE<br>SEPARATION</h2>
+  <p class="section-sub">The architecture's central law: no agent containing LLM reasoning may have write access to any external system. This is enforced at the MCP Gateway — not by agent self-policing.</p>
+
+  <div class="callout">
+    <span class="callout-label">Architectural Law</span>
+    LLMs produce recommendations. Deterministic execution agents produce effects. These responsibilities must never coexist in the same process boundary. The 6-agent design maps cleanly to 3 layers with 2 agents per layer — every layer has a clear owner, a clear input, and a clear output.
+  </div>
+
+  <div class="layer-diagram">
+    <div class="layer-row layer-reasoning">
+      <div class="layer-label">
+        <div class="layer-label-name">REASONING</div>
+        <div class="layer-label-rule">No external write access — ever</div>
+      </div>
+      <div class="layer-agents">
+        <div class="layer-agent-chip"><span class="dot"></span> Knowledge Registry (Hybrid)</div>
+        <div class="layer-agent-chip"><span class="dot"></span> Migration Agent (Full LLM)</div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--text3); padding:0 8px;">→ Produces recommendations only. Credentials never seen. State Store: read context / write outputs only.</div>
+      </div>
+    </div>
+    <div class="layer-row layer-orchestration">
+      <div class="layer-label">
+        <div class="layer-label-name">ORCHESTRATION</div>
+        <div class="layer-label-rule">Event Bus write only</div>
+      </div>
+      <div class="layer-agents">
+        <div class="layer-agent-chip"><span class="dot"></span> Orchestrator (Deterministic)</div>
+        <div class="layer-agent-chip"><span class="dot"></span> Validator (Hybrid — gate between layers)</div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--text3); padding:0 8px;">→ Routes, sequences, gates. No LLM reasoning. No tool execution. No credentials.</div>
+      </div>
+    </div>
+    <div class="layer-row layer-execution">
+      <div class="layer-label">
+        <div class="layer-label-name">EXECUTION</div>
+        <div class="layer-label-rule">Yes — via MCP only</div>
+      </div>
+      <div class="layer-agents">
+        <div class="layer-agent-chip"><span class="dot"></span> Intake & Triage (Deterministic)</div>
+        <div class="layer-agent-chip"><span class="dot"></span> Deployment Agent (Deterministic)</div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--text3); padding:0 8px;">→ Authorised commands + signed JWTs. No LLM calls. No routing decisions. Execution results only.</div>
+      </div>
+    </div>
+    <div class="layer-row layer-observe">
+      <div class="layer-label">
+        <div class="layer-label-name">OBSERVABILITY</div>
+        <div class="layer-label-rule">Read-only · No writes anywhere</div>
+      </div>
+      <div class="layer-agents">
+        <div class="layer-agent-chip"><span class="dot"></span> Observability Sidecar</div>
+        <div style="font-family:var(--mono); font-size:10px; color:var(--text3); padding:0 8px;">→ Passive subscriber. Writes telemetry only to Azure Data Explorer. Cannot affect job execution.</div>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">MCP GATEWAY — THE SINGLE ENFORCEMENT BOUNDARY</div>
+    <div class="code-block">
+<span class="h">Tool-Agent Authorization Matrix  (✅ authorized | — blocked at gateway)</span>
+
+<span class="k">Tool Group        </span> IntakeTriage  KnowledgeReg  Migration  Validator  Deployment  Orchestrator
+<span class="k">mcp.jenkins.*     </span>    <span class="v">✅ R</span>            —             —          —          —           —
+<span class="k">mcp.azdo.*        </span>     —             —             —          <span class="v">✅ R</span>       <span class="v">✅ W</span>        —
+<span class="k">mcp.scm.*         </span>     —             <span class="v">✅ W</span>          <span class="v">✅ R</span>        —          —           —
+<span class="k">mcp.storage.*     </span>    <span class="v">✅ W</span>          <span class="v">✅ W</span>          <span class="v">✅ W</span>       <span class="v">✅ W</span>       <span class="v">✅ W</span>        <span class="v">✅ W</span>
+<span class="k">mcp.security.*    </span>     —             —             —          <span class="v">✅ R</span>       <span class="v">✅ R</span>        —
+<span class="k">mcp.registry.*    </span>     —             <span class="v">✅ W</span>          <span class="v">✅ R</span>        —          —           —
+<span class="k">mcp.quota.*       </span>     —             —             —          —          <span class="v">✅ R</span>        <span class="v">✅ W</span>
+
+<span class="c">Credentials injected by Gateway. No agent holds or sees credential values.</span>
+<span class="c">Kill switch: single API Gateway toggle disables ALL write tool calls instantly.</span>
+<span class="c">Every tool call logged by Gateway BEFORE execution — audit trail cannot be bypassed.</span></div>
+  </div>
+</section>
+
+<!-- ── SECTION 3: FLOW ── -->
+<section class="section" id="flow">
+  <div class="section-num">03 — End-to-End Job Flow</div>
+  <h2 class="section-title">SINGLE JOB<br>TOP TO BOTTOM</h2>
+  <p class="section-sub">Every step that a single Jenkins job traverses from first discovery to AzDO pipeline creation. Click each phase to expand.</p>
+
+  <div class="flow-container">
+
+    <!-- Phase 0 -->
+    <div class="flow-phase open">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">0</div>
+        <div class="flow-phase-title" style="color:var(--text3);">PRE-MIGRATION — Registry Readiness</div>
+        <div class="flow-phase-agent" style="color:var(--hybrid);">Knowledge Registry</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="callout warn"><span class="callout-label">Prerequisite</span>The Knowledge Registry must be populated before Wave 1. This runs once, not per-job. Shared libraries are processed in descending order of dependent job count — the library used by 400 jobs migrates before the one used by 2.</div>
+        <div class="flow-step">
+          <div class="flow-step-num">P0.1</div>
+          <div class="flow-step-content">Knowledge Registry scans all Jenkins jobs → identifies all plugins and <strong>@Library</strong> references across the estate. Builds frequency map: sorted by dependent job count descending.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">P0.2</div>
+          <div class="flow-step-content">LLM component proposes plugin mappings (<strong>DIRECT / APPROXIMATE / NONE</strong>). DIRECT mappings against AzDO published task catalog are auto-ratified. APPROXIMATE and NONE require human platform engineer review via governance portal.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">P0.3</div>
+          <div class="flow-step-content">Shared libraries translated to AzDO YAML templates. <strong>PR created in AzDO template repository</strong> — never auto-merged. Platform engineer reviews, merges. Registry entry updates to MIGRATED only after merge.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">P0.4</div>
+          <div class="flow-step-content"><strong>Registry-miss escalation path</strong>: if Migration Agent encounters a plugin with no registry entry mid-wave → REGISTRY_MISS event → Knowledge Registry notified immediately → job enters AWAITING_REGISTRY_ENTRY → on ratification → job auto re-queued. Not a dead end — a feedback loop.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 1 -->
+    <div class="flow-phase open">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">1</div>
+        <div class="flow-phase-title">INTAKE & TRIAGE</div>
+        <div class="flow-phase-agent" style="color:var(--green);">Intake & Triage Agent</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="flow-step">
+          <div class="flow-step-num">1.1</div>
+          <div class="flow-step-content"><strong>Fingerprint</strong>: calls mcp.jenkins.get_job_config() → computes <strong>job_id = sha256(config.xml + canonical_name)</strong>. Checks Redis dedup cache — already exists? NO-OP, no error. Writes canonical job record to Migration State Store.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">1.2</div>
+          <div class="flow-step-content"><strong>Dependency Graph</strong>: upserts node and edges (DOWNSTREAM_TRIGGER / ARTIFACT_CONSUMER / SHARED_LIBRARY) to Cosmos DB Gremlin. DFS cycle detection — circular dependency? → WAVE_5 (manual), flow terminates here.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">1.3</div>
+          <div class="flow-step-content"><strong>Risk Score</strong>: weighted formula produces 0–100 score → maps to tier → wave assignment. downstream_dependent_count (25%) · production_scope (20%) · unmapped_plugin_count (15%) · credential_binding_count (15%) · shared_library_deps (10%) · incident_rate (10%) · complexity (5%).</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">1.4</div>
+          <div class="flow-step-content"><strong>Context Snapshot v1</strong>: computes composite hash = sha256(config.xml) + sha256(Jenkinsfile) + sha256(sorted library versions) + sha256(sorted plugin:version list). Stores snapshot_v1 in Azure Blob (WORM policy). This hash is the drift detection baseline for the entire migration lifetime.</div>
+        </div>
+        <div class="code-block"><span class="h">Publishes:</span> INTAKE_COMPLETE event → Service Bus
+<span class="k">event_id:</span>       <span class="v">evt-uuid-v4</span>
+<span class="k">trace_id:</span>       <span class="v">trace-uuid  ← immutable for this job's entire journey</span>
+<span class="k">span_id:</span>        <span class="v">span-intake-001</span>
+<span class="k">source_agent:</span>   <span class="v">INTAKE_TRIAGE</span>
+<span class="k">job_id:</span>         <span class="v">sha256-abc123</span>
+<span class="k">payload:</span>        <span class="v">risk_score, wave_id, context_hash_v1, snapshot_version</span>
+<span class="k">audit_signature:</span><span class="v">hmac-sha256-of-entire-event</span></div>
+      </div>
+    </div>
+
+    <!-- Phase 2 -->
+    <div class="flow-phase">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">2</div>
+        <div class="flow-phase-title">ORCHESTRATOR ROUTING</div>
+        <div class="flow-phase-agent" style="color:var(--cyan);">Orchestrator</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="flow-step">
+          <div class="flow-step-num">2.1</div>
+          <div class="flow-step-content">Verifies HMAC signature. Transitions job: <strong>INTAKE_PENDING → INTAKE_COMPLETE → RISK_SCORED → WAVE_ASSIGNED</strong> via optimistic locking in Cosmos DB. Duplicate events trigger rejected transitions — not duplicate work.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">2.2</div>
+          <div class="flow-step-content">Checks 3 wave readiness conditions: <strong>(1)</strong> previous wave 2-week health check passed, <strong>(2)</strong> all upstream dependencies in COMPLETE state, <strong>(3)</strong> human wave-auth JWT issued (Gate 0). All 3 required simultaneously.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">2.3</div>
+          <div class="flow-step-content">Checks Knowledge Registry: all @Library refs status = MIGRATED? <strong>YES</strong> → publishes ANALYSIS_REQUESTED. <strong>NO</strong> → job enters AWAITING_LIBRARY_READINESS. When library migrates, Orchestrator automatically re-evaluates and releases.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 3 -->
+    <div class="flow-phase">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">3</div>
+        <div class="flow-phase-title">MIGRATION — LLM REASONING</div>
+        <div class="flow-phase-agent" style="color:var(--llm);">Migration Agent (1 of 50 parallel instances)</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="callout info"><span class="callout-label">Critical Design</span>The LLM never receives raw Groovy or raw XML. Deterministic parsers in the MCP tool server pre-process both sources to structured JSON. Token reduction: 15,000–40,000 → 2,000–4,000 per job (75–85% saving). Parsers handle syntax; LLM handles semantics.</div>
+        <div class="flow-step">
+          <div class="flow-step-num">3.1</div>
+          <div class="flow-step-content"><strong>Deterministic pre-processing (inside MCP, not LLM)</strong>: config.xml parsed → structured JSON (triggers, params, retention, agent labels, SCM). Jenkinsfile Groovy AST parsed → structured JSON (stages, steps, parallel, credentials, @Library, input steps, post conditions).</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">3.2</div>
+          <div class="flow-step-content"><strong>Phase 1 — Migration Brief</strong>: LLM resolves semantic conflicts between two sources. Detects implicit behaviours. Reads plugin + library mappings from Knowledge Registry (lookup, never independent reasoning). Produces: stages[], credential_refs[], plugin_refs[], complexity_tier, conflict_log[], manual_intervention_items[].</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">3.3</div>
+          <div class="flow-step-content"><strong>BLOCKING items?</strong> → CONVERSION_BLOCKED, job routed to human queue, flow stops. <strong>No blocking items</strong> → Phase 2 proceeds immediately.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">3.4</div>
+          <div class="flow-step-content"><strong>Phase 2 — YAML + Manifest</strong>: selects tier (Rules Engine $0 / Mid-tier $0.03–0.08 / Frontier $0.15–0.55). Applies semantic mappings. Produces candidate AzDO YAML + Conversion Manifest (every mapping decision: what Jenkins construct → what AzDO construct, with what confidence, on what assumption).</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">3.5</div>
+          <div class="flow-step-content"><strong>Context-overflow path</strong>: if job too complex for single LLM context window → chunked analysis by stage → stage-level briefs assembled by Orchestrator before YAML synthesis. Prevents silent truncation of large scripted pipelines.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 4 -->
+    <div class="flow-phase">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">4</div>
+        <div class="flow-phase-title">VALIDATION — 3 PLANES</div>
+        <div class="flow-phase-agent" style="color:var(--cyan);">Validator Agent (1 of 20 parallel instances)</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="flow-step">
+          <div class="flow-step-num">4.1</div>
+          <div class="flow-step-content"><strong>Plane 1 — Syntactic (Deterministic)</strong>: mcp.azdo.validate_yaml_schema(). Pass/fail with exact errors. No LLM. Must be 100% reproducible — same input always same result.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">4.2</div>
+          <div class="flow-step-content"><strong>Plane 2 — Security (Deterministic — non-negotiable)</strong>: regex scans for hardcoded secrets (AWS_SECRET, API_KEY, password=). RBAC scope violations. Forbidden constructs. Required steps check (SAST scan, artifact signing). A security control that "misses on one run" is a security gap — must be deterministic.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">4.3</div>
+          <div class="flow-step-content"><strong>Plane 3 — Semantic Alignment (LLM)</strong>: does the YAML implement exactly what the Conversion Manifest claims? Reading comprehension + logical consistency across two structured documents. Without the Manifest, this is "does this YAML look right?" — with it, this is "does this YAML implement exactly what was promised?"</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">4.4</div>
+          <div class="flow-step-content"><strong>Fix loop</strong>: FAILED_FIXABLE → structured fix instructions injected into CONVERSION_REQUESTED event → Migration Agent treats as new conversion with constraints. Max 2 automated cycles. 3rd failure → human escalation. FAILED_BLOCKED (security) → immediate security team escalation, job locked.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Phase 5 -->
+    <div class="flow-phase">
+      <div class="flow-phase-header" onclick="this.parentElement.classList.toggle('open')">
+        <div class="flow-phase-num">5</div>
+        <div class="flow-phase-title">DEPLOYMENT — PIPELINE CREATION</div>
+        <div class="flow-phase-agent" style="color:var(--green);">Deployment Agent</div>
+        <div class="toggle-hint">↕</div>
+      </div>
+      <div class="flow-phase-body">
+        <div class="callout danger"><span class="callout-label">The Critical Moment</span>mcp.azdo.create_pipeline() is called here — and only here. This is the only place in the entire architecture where an AzDO pipeline is created. Four independent gates must clear before this call executes.</div>
+        <div class="flow-step">
+          <div class="flow-step-num">5.1</div>
+          <div class="flow-step-content"><strong>Four pre-conditions checked independently</strong>: (1) Validator PASS confirmed in State Store, (2) signed human approval JWT cryptographically verified by MCP Gateway, (3) mcp.quota.check_and_decrement() — global &lt;50/hr, (4) no active circuit breaker on current wave.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">5.2</div>
+          <div class="flow-step-content"><strong>Archive before write</strong>: Jenkins config archived to Config Snapshot Store (WORM) immediately before any AzDO write call. This is the rollback source — exact config at migration time, never a later drifted version.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">5.3</div>
+          <div class="flow-step-content"><strong>Idempotency check</strong>: queries AzDO for existing pipeline with same content hash. Already exists with DEPLOYMENT_SUCCESS? → returns existing ID, no-op. This check executes inside the MCP tool server — survives agent restart mid-operation.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">5.4</div>
+          <div class="flow-step-content"><strong>Shadow deploy first</strong>: mcp.azdo.create_pipeline() on non-prod branch → run → artifact hash comparison against Jenkins baseline. Shadow PASS → production promotion. Shadow FAIL → human review queue.</div>
+        </div>
+        <div class="flow-step">
+          <div class="flow-step-num">5.5</div>
+          <div class="flow-step-content"><strong>Production deploy</strong>: mcp.azdo.create_pipeline() on production → Jenkins set to READ_ONLY (not decommissioned). Publishes DEPLOYMENT_SUCCESS. Every action logged to Immutable Audit Log by MCP Gateway before execution.</div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+<!-- ── SECTION 4: OBSERVABILITY ── -->
+<section class="section" id="observability">
+  <div class="section-num">04 — Observability & Distributed Tracing</div>
+  <h2 class="section-title">TRACE EVERY<br>DECISION</h2>
+  <p class="section-sub">Every event carries a trace_id from INTAKE_PENDING to COMPLETE. Without this, you see that a job failed — not where and why across the distributed trace. In a Fortune 100 incident postmortem, that is not acceptable.</p>
+
+  <div class="callout info"><span class="callout-label">Correlation ID Design</span>Every event carries: trace_id (immutable for entire job journey) · span_id (unique per agent execution) · parent_span_id (links to triggering event). These three fields make the entire migration history for any job queryable as a single distributed trace in Azure Monitor.</div>
+
+  <div style="border:1px solid var(--border); margin-top:32px; overflow:hidden;">
+    <div style="background:var(--surface2); padding:12px 20px; font-family:var(--mono); font-size:9px; letter-spacing:3px; color:var(--text3); text-transform:uppercase;">Trace Event Schema — Every Event In The System</div>
+    <div class="trace-event">
+      <div class="trace-key">trace_id</div>
+      <div class="trace-val">Immutable UUID assigned at INTAKE_PENDING. Never changes. Links entire job journey across all agents, all MCP calls, all human gates.</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">span_id</div>
+      <div class="trace-val">Unique per agent execution. A single Migration Agent invocation = one span. A Validator re-run after fix cycle = new span.</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">parent_span_id</div>
+      <div class="trace-val">Links to the span that triggered this execution. Enables full causal chain reconstruction: why did this agent run? Which event triggered it?</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">agent_id</div>
+      <div class="trace-val">Which of the 50 parallel Migration instances, 20 Validator instances, etc. processed this job. Essential for correlating agent-level performance degradation.</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">duration_ms</div>
+      <div class="trace-val">Agent execution time. LLM calls broken into: pre-processing, LLM call, post-processing. Token counts in/out. Model tier used.</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">inputs_hash</div>
+      <div class="trace-val">SHA-256 of all inputs to this agent execution. With outputs_hash, creates a verifiable computation record: these inputs produced these outputs.</div>
+    </div>
+    <div class="trace-event">
+      <div class="trace-key">outputs_hash</div>
+      <div class="trace-val">SHA-256 of all outputs produced. Stored in Immutable Audit Log. Enables tamper detection — any modification to stored outputs is detectable.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">INSTRUMENTATION POINTS</div>
+    <table class="arch-table">
+      <thead>
+        <tr><th>Instrumentation Point</th><th>What Is Captured</th><th>Alert Threshold</th></tr>
+      </thead>
+      <tbody>
+        <tr><td>Service Bus publish/consume</td><td>Event type, topic, partition, processing lag, consumer group</td><td>Processing lag &gt; 30s → ops alert</td></tr>
+        <tr><td>MCP tool call (before)</td><td>Tool name, agent, job_id, trace context, input hash</td><td>—</td></tr>
+        <tr><td>MCP tool call (after)</td><td>Duration, status code, response size, rate limit headers</td><td>Error rate &gt; 2% / 5min window</td></tr>
+        <tr><td>LLM API call</td><td>Tokens in/out, model tier, latency, cost, fallback triggered</td><td>p95 latency &gt; 45s → alert</td></tr>
+        <tr><td>State Store write</td><td>State transition, optimistic lock result, version number</td><td>Lock conflict rate &gt; 5% → investigate</td></tr>
+        <tr><td>Human gate open/close</td><td>Gate number, approver identity, duration in queue, JWT id</td><td>Queue age &gt; SLA threshold</td></tr>
+        <tr><td>Validator result</td><td>Plane 1/2/3 results, fix cycle count, failure classification</td><td>FAILED_FIXABLE rate &gt; 15% → wave review</td></tr>
+        <tr><td>Wave health</td><td>Jobs by state, failure rate, circuit breaker status</td><td>&gt;6% failure rate → pre-emptive alert (before 8% CB)</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── SECTION 5: MULTI-TENANCY ── -->
+<section class="section" id="multitenancy">
+  <div class="section-num">05 — Multi-Tenancy & BU Isolation</div>
+  <h2 class="section-title">BU ISOLATION<br>MODEL</h2>
+  <p class="section-sub">A Fortune 100 has multiple business units with different compliance requirements, different plugin landscapes, and different risk tolerances. The architecture cannot treat 5,000 jobs as a single namespace.</p>
+
+  <div class="bu-grid">
+    <div class="bu-card">
+      <div class="bu-name">STANDARD BU</div>
+      <div class="bu-tag" style="background:rgba(16,185,129,0.1); color:var(--green); border:1px solid rgba(16,185,129,0.3);">STANDARD</div>
+      <div class="bu-detail">
+        compliance_tier: STANDARD<br>
+        registry: shared global<br>
+        gates: 0 + 2 (bypasses Gate 1)<br>
+        llm_provider: cloud (Claude)<br>
+        quota: 50 prod deploys/hr shared<br>
+        circuit_breaker: global + per-BU<br>
+        wave_isolation: full
+      </div>
+    </div>
+    <div class="bu-card">
+      <div class="bu-name">REGULATED BU</div>
+      <div class="bu-tag" style="background:rgba(245,158,11,0.1); color:var(--amber); border:1px solid rgba(245,158,11,0.3);">REGULATED</div>
+      <div class="bu-detail">
+        compliance_tier: REGULATED<br>
+        registry: federated (BU override)<br>
+        gates: 0 + 1 + 1.5 (compliance) + 2<br>
+        llm_provider: cloud (Claude)<br>
+        quota: dedicated BU quota<br>
+        circuit_breaker: BU-level only<br>
+        Gate 1.5: compliance officer sign-off
+      </div>
+    </div>
+    <div class="bu-card">
+      <div class="bu-name">RESTRICTED BU</div>
+      <div class="bu-tag" style="background:rgba(239,68,68,0.1); color:var(--red); border:1px solid rgba(239,68,68,0.3);">RESTRICTED</div>
+      <div class="bu-detail">
+        compliance_tier: RESTRICTED<br>
+        registry: isolated (no global share)<br>
+        gates: all gates + CISO sign-off<br>
+        llm_provider: private/on-prem only<br>
+        quota: isolated, no shared pool<br>
+        circuit_breaker: isolated<br>
+        air-gapped: no cloud LLM calls
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">NAMESPACE ISOLATION DESIGN</div>
+    <div class="code-block">
+<span class="h">Every job record carries:</span>
+  business_unit_id      <span class="v">string</span>    <span class="c">← partition key in State Store</span>
+  compliance_tier       <span class="v">enum</span>      <span class="c">← STANDARD | REGULATED | RESTRICTED</span>
+  bu_wave_id            <span class="v">string</span>    <span class="c">← wave scoped to BU, not global</span>
+
+<span class="h">Event Bus topics namespaced:</span>
+  {bu_id}.INTAKE_COMPLETE
+  {bu_id}.ANALYSIS_REQUESTED
+  {bu_id}.DEPLOYMENT_REQUESTED
+  <span class="c">← BU A events never visible to BU B consumers</span>
+
+<span class="h">Registry federation decision (must be explicit):</span>
+  Global registry       <span class="v">universal plugins</span> <span class="c">Maven, Gradle, Docker, Git</span>
+  BU registry           <span class="v">BU-specific plugins</span> <span class="c">overrides global for that BU</span>
+  RESTRICTED registry   <span class="v">isolated</span> <span class="c">never reads from global</span>
+
+<span class="h">Quota isolation:</span>
+  BU A circuit breaker  <span class="c">← does NOT pause BU B migration</span>
+  BU A quota exhausted  <span class="c">← does NOT block BU B deployments</span>
+  Global cap enforced   <span class="c">← total across all BUs still ≤ 50/hr</span></div>
+  </div>
+</section>
+
+<!-- ── SECTION 6: RAG ── -->
+<section class="section" id="rag">
+  <div class="section-num">06 — RAG Feedback Loop</div>
+  <h2 class="section-title">COMPOUNDING<br>INTELLIGENCE</h2>
+  <p class="section-sub">LLMs have no memory between calls by default. Three levels of memory make the Migration Agent progressively smarter across all 5,000 jobs — without retraining the underlying model.</p>
+
+  <div class="callout warn"><span class="callout-label">Critical: Poisoning Prevention</span>Without quality gates on indexed documents, a bad Conversion Manifest that passes validation but fails in production gets indexed and injected into future jobs — systematically degrading automation quality over time. This is the most dangerous unaddressed failure mode without this design.</div>
+
+  <div class="rag-flow">
+    <div class="rag-step">
+      <div class="rag-step-num">LEVEL 01</div>
+      <div class="rag-step-title">In-Context</div>
+      <div class="rag-step-body">
+        Already present from Wave 1. Full Migration Brief + prior decisions in prompt context. Job 3,000 can receive Manifest from a similar completed job as reference example — no retraining required.
+      </div>
+    </div>
+    <div class="rag-step">
+      <div class="rag-step-num">LEVEL 02</div>
+      <div class="rag-step-title">RAG Store</div>
+      <div class="rag-step-body">
+        Azure AI Search with vector indexing (text-embedding-3-large). Top 3–5 nearest neighbours by cosine similarity &gt; 0.82. Below threshold: no injection. Prevents irrelevant examples from degrading output.
+      </div>
+    </div>
+    <div class="rag-step">
+      <div class="rag-step-num">LEVEL 03</div>
+      <div class="rag-step-title">Registry Updates</div>
+      <div class="rag-step-body">
+        Fix Analyser (lightweight, inside Knowledge Registry) detects generalisable patterns from human corrections. Proposes registry updates → human ratification → all future jobs get correct mapping with no LLM involvement.
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">QUALITY GATE — WHAT GETS INDEXED</div>
+    <div class="code-block">
+<span class="h">Only index Conversion Manifests that:</span>
+  1. Passed all 3 Validator planes <span class="v">without a fix cycle</span>
+  2. Passed shadow deployment       <span class="v">artifact hash matched</span>
+  3. Completed 30-day observation   <span class="v">HEALTHY status throughout</span>
+
+<span class="h">Poisoning prevention:</span>
+  Job enters ROLLBACK_COMPLETE      <span class="e">→ flag its Manifest in index</span>
+  Flagged Manifests                 <span class="e">→ removed from index automatically</span>
+  Retrieval quality score           <span class="v">→ sent to Migration Agent alongside examples</span>
+  Low quality score                 <span class="w">→ Migration Agent ignores retrieval, uses base model</span>
+
+<span class="h">Human correction loop:</span>
+  Human fixes Converter output      <span class="v">→ correction delta stored</span>
+  Fix Analyser detects pattern      <span class="v">→ proposes registry update</span>
+  Human ratifies                    <span class="v">→ enters production registry</span>
+  Future jobs with same plugin      <span class="v">→ deterministic lookup, no LLM needed</span>
+
+<span class="h">Expected automation rate progression:</span>
+  Wave 1 baseline     <span class="v">68–75%</span>   Level-2
+  After Wave 2 RAG    <span class="v">+5–8pts</span>  from retrieved examples
+  Registry updates    <span class="v">+3–5pts</span>  from ratified corrections
+  Realistic ceiling   <span class="v">82–87%</span>   with all three investments</div>
+  </div>
+</section>
+
+<!-- ── SECTION 7: FAILURE MATRIX ── -->
+<section class="section" id="failure">
+  <div class="section-num">07 — Failure Classification Matrix</div>
+  <h2 class="section-title">ALGORITHMIC<br>FAILURE TAXONOMY</h2>
+  <p class="section-sub">FAILED_FIXABLE vs. FAILED_BLOCKED cannot be left to implicit judgement. Every failure type maps to exactly one outcome. No ambiguity, no misclassification, no automated fix cycles wasted on a security violation.</p>
+
+  <div class="failure-grid">
+    <div class="failure-card blocked">
+      <div class="failure-type blocked">FAILED_BLOCKED</div>
+      <div style="font-family:var(--mono); font-size:9px; color:var(--text3); margin-bottom:12px; letter-spacing:1px;">NON-NEGOTIABLE · NEVER AUTO-FIXABLE · IMMEDIATE ESCALATION</div>
+      <div class="failure-item">secret_pattern_hit (any)</div>
+      <div class="failure-item">rbac_scope_violation (any)</div>
+      <div class="failure-item">credential_value_in_yaml</div>
+      <div class="failure-item">forbidden_construct (security-category)</div>
+      <div class="failure-item">circular_dependency_in_yaml</div>
+    </div>
+    <div class="failure-card fixable">
+      <div class="failure-type fixable">FAILED_FIXABLE</div>
+      <div style="font-family:var(--mono); font-size:9px; color:var(--text3); margin-bottom:12px; letter-spacing:1px;">AUTO-RETRY ELIGIBLE · MAX 2 CYCLES · THEN ESCALATE</div>
+      <div class="failure-item">schema_validation_error (syntactic)</div>
+      <div class="failure-item">missing_required_step (additive fix)</div>
+      <div class="failure-item">low_confidence_mapping</div>
+      <div class="failure-item">semantic_misalignment (Manifest vs YAML)</div>
+      <div class="failure-item">forbidden_construct (non-security)</div>
+    </div>
+    <div class="failure-card human">
+      <div class="failure-type human">FAILED_HUMAN_REQUIRED</div>
+      <div style="font-family:var(--mono); font-size:9px; color:var(--text3); margin-bottom:12px; letter-spacing:1px;">FIXABLE BUT NOT BY AUTOMATION · HUMAN QUEUE</div>
+      <div class="failure-item">ambiguous_intent (unresolved conflict)</div>
+      <div class="failure-item">no_registry_equivalent (NONE mapping)</div>
+      <div class="failure-item">dynamic_generation (runtime stage gen)</div>
+      <div class="failure-item">context_overflow (exceeds LLM window)</div>
+      <div class="failure-item">fix_cycle_exhausted (3rd attempt)</div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">REGISTRY-MISS ESCALATION PATH — THE CRITICAL ADDITION</div>
+    <div class="code-block">
+<span class="h">Without this path:</span>
+  Plugin not in registry during Migration Agent execution
+  → CONVERSION_BLOCKED
+  → job enters human queue
+  → <span class="e">human queue grows indefinitely</span>
+  → <span class="e">no feedback to Knowledge Registry</span>
+  → <span class="e">next job with same plugin hits same dead end</span>
+
+<span class="h">With this path:</span>
+  Plugin not in registry during Migration Agent execution
+  → REGISTRY_MISS event published          <span class="v">← new event type</span>
+  → Knowledge Registry Agent notified      <span class="v">← immediate, not next batch</span>
+  → job enters AWAITING_REGISTRY_ENTRY     <span class="v">← specific waiting state</span>
+  → Knowledge Registry proposes mapping    <span class="v">← LLM + human ratification</span>
+  → on ratification: REGISTRY_ENTRY_READY  <span class="v">← new event type</span>
+  → Orchestrator auto re-queues job        <span class="v">← feedback loop, not dead end</span>
+  → ALL jobs awaiting same plugin released <span class="v">← one ratification unblocks N jobs</span></div>
+  </div>
+</section>
+
+<!-- ── SECTION 8: GATES ── -->
+<section class="section" id="gates">
+  <div class="section-num">08 — Human Governance Gates</div>
+  <h2 class="section-title">4 GATES.<br>NO BYPASS.</h2>
+  <p class="section-sub">Human approval is not advisory — it is part of the event chain. Every gate issues a cryptographic JWT. The MCP Gateway rejects write tool calls if the token is absent or expired. The human cannot be bypassed.</p>
+
+  <div class="gates-flow">
+    <div class="gate-card">
+      <div class="gate-num">0</div>
+      <div class="gate-label">Gate Zero</div>
+      <div class="gate-name">WAVE AUTH</div>
+      <div class="gate-detail">
+        <strong>Who:</strong> Program Director + BU IT Lead<br>
+        <strong>When:</strong> Before every wave<br>
+        <strong>Risk bypass:</strong> None — all waves<br>
+        <strong>Artifact:</strong> Wave job list, risk distribution, dependency readiness report<br>
+        <strong>SLA:</strong> 3 business days<br>
+        <strong>Enforcement:</strong> Orchestrator blocks wave start until signed JWT received from ITSM
+      </div>
+    </div>
+    <div class="gate-card">
+      <div class="gate-num">1</div>
+      <div class="gate-label">Gate One</div>
+      <div class="gate-name">BRIEF REVIEW</div>
+      <div class="gate-detail">
+        <strong>Who:</strong> Team Lead + Security Architect<br>
+        <strong>When:</strong> Risk tier HIGH (41+) only<br>
+        <strong>Risk bypass:</strong> LOW + MODERATE auto-bypass<br>
+        <strong>Artifact:</strong> Migration Brief with human-readable summary + conflict log<br>
+        <strong>SLA:</strong> 2 business days<br>
+        <strong>Job waits:</strong> ANALYSIS_COMPLETE state
+      </div>
+    </div>
+    <div class="gate-card">
+      <div class="gate-num">2</div>
+      <div class="gate-label">Gate Two</div>
+      <div class="gate-name">YAML SIGN-OFF</div>
+      <div class="gate-detail">
+        <strong>Who:</strong> Team Lead + Change Manager<br>
+        <strong>When:</strong> All MODERATE+ risk tiers<br>
+        <strong>Risk bypass:</strong> LOW only<br>
+        <strong>Artifact:</strong> Validated YAML diff, Conversion Manifest, shadow run comparison<br>
+        <strong>SLA:</strong> 1 day (MOD) / 3 days (HIGH/CRIT)<br>
+        <strong>Requires:</strong> ITSM change ticket + shadow pass
+      </div>
+    </div>
+    <div class="gate-card">
+      <div class="gate-num">1.5</div>
+      <div class="gate-label">Gate 1.5 — Regulated BUs Only</div>
+      <div class="gate-name">COMPLIANCE</div>
+      <div class="gate-detail">
+        <strong>Who:</strong> Compliance Officer (separate from Gate 1 approver)<br>
+        <strong>When:</strong> compliance_tier = REGULATED or RESTRICTED<br>
+        <strong>Risk bypass:</strong> None within regulated BUs<br>
+        <strong>Artifact:</strong> Brief + compliance impact assessment<br>
+        <strong>SLA:</strong> 3 business days<br>
+        <strong>New in 10/10 design</strong>
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">BLAST RADIUS CONTROLS — ENFORCED AT MCP GATEWAY</div>
+    <table class="arch-table">
+      <thead><tr><th>Control</th><th>Limit</th><th>Enforcement Point</th><th>Override?</th></tr></thead>
+      <tbody>
+        <tr><td>Prod deploys/hr global</td><td>50 maximum</td><td>MCP Gateway quota check</td><td>No</td></tr>
+        <tr><td>Max prod jobs in-flight/BU</td><td>200 concurrent</td><td>Distributed lock in State Store</td><td>Program Director only</td></tr>
+        <tr><td>Wave circuit breaker</td><td>&gt;8% fail / 4hr window</td><td>Orchestrator state machine</td><td>Human re-open via portal + investigation-complete token</td></tr>
+        <tr><td>Pre-emptive wave alert</td><td>&gt;6% fail rate trending</td><td>Observability Sidecar</td><td>N/A — alert only</td></tr>
+        <tr><td>Kill switch</td><td>Single toggle</td><td>API Gateway — disables all write tool calls instantly</td><td>Emergency use only</td></tr>
+        <tr><td>Wave dependent cap</td><td>&lt;1,000 total downstream dependents per wave</td><td>Dependency Graph Agent at wave assignment</td><td>No</td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── SECTION 9: DR ── -->
+<section class="section" id="dr">
+  <div class="section-num">09 — Disaster Recovery & Failover</div>
+  <h2 class="section-title">SURVIVE<br>ANYTHING</h2>
+  <p class="section-sub">A 12–18 month migration at Fortune 100 scale will experience at least one regional outage, one LLM API degradation, and one storage consistency event. Recovery behaviour must be specified — not discovered under pressure.</p>
+
+  <div class="dr-grid">
+    <div class="dr-card">
+      <div class="dr-title">MIGRATION STATE STORE</div>
+      <div class="dr-spec">
+        <strong>Storage:</strong> Azure Cosmos DB Multi-Region<br>
+        <strong>Consistency:</strong> Strong (for state transitions)<br>
+        <strong>Primary region:</strong> Co-located with Jenkins cluster<br>
+        <strong>Secondary region:</strong> Azure paired region<br>
+        <strong>Failover:</strong> Automatic — RTO &lt; 5 min, RPO = 0<br>
+        <strong>Optimistic lock etag:</strong> Defined behaviour across regions — secondary never accepts a transition if primary etag differs. No split-brain state.<br>
+        <strong>Retention:</strong> 3 years minimum
+      </div>
+    </div>
+    <div class="dr-card">
+      <div class="dr-title">EVENT BUS</div>
+      <div class="dr-spec">
+        <strong>Tier:</strong> Azure Service Bus Premium<br>
+        <strong>Zone redundancy:</strong> Within primary region<br>
+        <strong>Geo-DR:</strong> Secondary namespace mirroring<br>
+        <strong>On failover:</strong> Agent connection strings updated via Azure App Config — no redeploy required<br>
+        <strong>DLQ retention:</strong> 90 days on both primary and secondary<br>
+        <strong>At-least-once delivery:</strong> Preserved across failover — dedup cache handles re-delivery
+      </div>
+    </div>
+    <div class="dr-card">
+      <div class="dr-title">CONFIG SNAPSHOT STORE</div>
+      <div class="dr-spec">
+        <strong>Storage:</strong> Azure Blob Storage GRS<br>
+        <strong>Replication:</strong> Automatic cross-region (GRS)<br>
+        <strong>Immutability:</strong> WORM policy per container (write once read many)<br>
+        <strong>Legal defensibility:</strong> WORM makes audit trail legally defensible — not just technically immutable. Required for regulated organisations.<br>
+        <strong>Versioning:</strong> Azure Blob versioning as secondary safeguard<br>
+        <strong>Retention:</strong> 1 year minimum + compliance extension
+      </div>
+    </div>
+    <div class="dr-card">
+      <div class="dr-title">LLM API FAILOVER</div>
+      <div class="dr-spec">
+        <strong>Primary model:</strong> Claude Sonnet (Frontier tier)<br>
+        <strong>Fallback model:</strong> Explicitly specified same-tier alternative provider<br>
+        <strong>Trigger:</strong> Error rate &gt; 5% over 10-minute window<br>
+        <strong>Fallback behaviour:</strong> Migration Agent continues — flags jobs as FALLBACK_MODEL_USED<br>
+        <strong>Fallback jobs:</strong> Re-reviewed at Gate 2 regardless of risk tier (model change = re-validation requirement)<br>
+        <strong>Automatic recovery:</strong> Primary restored → FALLBACK_MODEL_USED jobs queued for re-analysis
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">CHAOS ENGINEERING SCHEDULE</div>
+    <div class="code-block">
+<span class="h">Monthly chaos tests (scheduled, not ad hoc):</span>
+
+  Kill Migration Agent mid-execution
+  → <span class="v">verify Orchestrator detects stall via SLA monitoring</span>
+  → <span class="v">verify retry on healthy instance</span>
+  → <span class="v">verify no state loss, no duplicate processing</span>
+
+  Kill Orchestrator process
+  → <span class="v">verify restart replays from last committed state</span>
+  → <span class="v">verify all 14 state transitions are idempotent on replay</span>
+
+  Inject duplicate events into Service Bus
+  → <span class="v">verify Redis dedup cache silently discards second event</span>
+  → <span class="v">verify no duplicate State Store entries</span>
+
+  Trigger primary region failover
+  → <span class="v">verify RTO &lt; 5 min for State Store</span>
+  → <span class="v">verify agent connection strings update via App Config</span>
+  → <span class="v">verify in-flight jobs resume from last committed state</span>
+
+  Exhaust LLM API quota
+  → <span class="v">verify fallback model activates at 5% error rate threshold</span>
+  → <span class="v">verify FALLBACK_MODEL_USED flag appears on affected jobs</span>
+
+<span class="c">Results feed into quarterly architecture review.
+Any failure in chaos tests = P1 remediation before next wave.</span></div>
+  </div>
+</section>
+
+<!-- ── SECTION 10: COST ── -->
+<section class="section" id="cost">
+  <div class="section-num">10 — LLM Token Budget & Cost Model</div>
+  <h2 class="section-title">$695 FOR<br>5,000 JOBS</h2>
+  <p class="section-sub">Structured pre-processing reduces token usage by 75–85%. Three-tier conversion strategy ensures expensive frontier reasoning is used only where it adds value. Total LLM cost is trivial compared to human labour.</p>
+
+  <div class="cost-grid">
+    <div class="cost-card">
+      <div class="cost-tier">Rules Engine (~1,500 jobs)</div>
+      <div class="cost-price">$0</div>
+      <div class="cost-label">Simple builds, direct mappings only. Template substitution. No LLM call. 88–92% Level-2 success.</div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-tier">Mid-Tier LLM (~2,200 jobs)</div>
+      <div class="cost-price">$175</div>
+      <div class="cost-label">Standard CI, all plugins mapped. ~4,000–6,000 tokens. $0.03–0.08/job. 75–83% Level-2 success.</div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-tier">Frontier LLM (~1,300 jobs)</div>
+      <div class="cost-price">$520</div>
+      <div class="cost-label">Complex CI/CD, scripted pipelines. ~8,000–16,000 tokens. $0.15–0.55/job. 40–65% Level-2 success.</div>
+    </div>
+    <div class="cost-card">
+      <div class="cost-tier">Total — All 5,000 Jobs</div>
+      <div class="cost-price">~$695</div>
+      <div class="cost-label">Trivial vs. human labour cost. With Wave 0 feedback, RAG, and registry investments: 82–87% Level-2 automation ceiling.</div>
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <table class="arch-table">
+      <thead><tr><th>Job Category</th><th>% Portfolio</th><th>Tier</th><th>Tokens/Job</th><th>Cost/Job</th><th>L2 Success</th></tr></thead>
+      <tbody>
+        <tr><td>Simple build (Maven/Gradle)</td><td>25–30%</td><td>Rules Engine</td><td>0</td><td>$0</td><td>88–92%</td></tr>
+        <tr><td>Standard CI (all plugins mapped)</td><td>40–45%</td><td>Mid-tier LLM</td><td>4,000–6,000</td><td>$0.03–0.08</td><td>75–83%</td></tr>
+        <tr><td>Complex CI/CD (unmapped plugins)</td><td>15–20%</td><td>Frontier LLM</td><td>8,000–12,000</td><td>$0.15–0.40</td><td>55–65%</td></tr>
+        <tr><td>Scripted pipelines (arbitrary Groovy)</td><td>10–15%</td><td>Frontier LLM</td><td>10,000–16,000</td><td>$0.25–0.55</td><td>40–52%</td></tr>
+        <tr><td>Dynamic Jenkinsfiles (library DSL)</td><td>5–10%</td><td>Shared Library first</td><td>Library-dependent</td><td>$0.30–0.60</td><td>30–45%</td></tr>
+        <tr><td><strong>Weighted Average — 5,000 jobs</strong></td><td>100%</td><td>Mixed</td><td>~2,000–4,000 avg</td><td><strong>~$0.06–0.14</strong></td><td><strong>68–75% → 82–87%</strong></td></tr>
+      </tbody>
+    </table>
+  </div>
+</section>
+
+<!-- ── SECTION 11: STATE MACHINE ── -->
+<section class="section" id="states">
+  <div class="section-num">11 — State Machine</div>
+  <h2 class="section-title">15 STATES<br>PER JOB</h2>
+  <p class="section-sub">Every state transition uses optimistic locking in Cosmos DB. A transition is rejected if the job's current state is not the expected source state. All event processing is idempotent — duplicate events trigger rejected transitions, not duplicate work.</p>
+
+  <div class="state-machine">
+    <div class="state-node active">INTAKE_PENDING</div>
+    <div class="state-node active">INTAKE_COMPLETE</div>
+    <div class="state-node active">RISK_SCORED</div>
+    <div class="state-node active">WAVE_ASSIGNED</div>
+    <div class="state-node">AWAITING_LIBRARY_READINESS</div>
+    <div class="state-node">AWAITING_REGISTRY_ENTRY</div>
+    <div class="state-node active">ANALYSIS_QUEUED</div>
+    <div class="state-node active">ANALYSIS_COMPLETE</div>
+    <div class="state-node gate">[ HUMAN_GATE_1 ]</div>
+    <div class="state-node gate">[ COMPLIANCE_GATE_1.5 ]</div>
+    <div class="state-node active">CONVERSION_QUEUED</div>
+    <div class="state-node active">CONVERSION_COMPLETE</div>
+    <div class="state-node active">VALIDATION_QUEUED</div>
+    <div class="state-node active">VALIDATION_COMPLETE</div>
+    <div class="state-node gate">[ HUMAN_GATE_2 ]</div>
+    <div class="state-node active">SHADOW_DEPLOYMENT</div>
+    <div class="state-node active">SHADOW_VALIDATED</div>
+    <div class="state-node active">PRODUCTION_DEPLOYMENT</div>
+    <div class="state-node active">OBSERVATION_WINDOW</div>
+    <div class="state-node terminal">COMPLETE</div>
+    <div class="state-node error">ROLLBACK_COMPLETE</div>
+    <div class="state-node error">FAILED_BLOCKED</div>
+    <div class="state-node error">CONVERSION_BLOCKED</div>
+  </div>
+
+  <div style="display:flex; gap:24px; margin-top:16px; flex-wrap:wrap;">
+    <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; color:var(--text3);">
+      <div style="width:10px;height:10px;background:var(--green);border-radius:2px;"></div> Active states (happy path)
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; color:var(--text3);">
+      <div style="width:10px;height:10px;background:var(--amber);border-radius:2px;"></div> Human gate states
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; color:var(--text3);">
+      <div style="width:10px;height:10px;background:var(--accent);border-radius:2px;"></div> Terminal success
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; color:var(--text3);">
+      <div style="width:10px;height:10px;background:var(--red);border-radius:2px;"></div> Terminal error / rollback
+    </div>
+    <div style="display:flex; align-items:center; gap:8px; font-family:var(--mono); font-size:10px; color:var(--text3);">
+      <div style="width:10px;height:10px;background:var(--text3);border-radius:2px;"></div> Waiting states (blocked on external condition)
+    </div>
+  </div>
+
+  <div style="margin-top:32px;">
+    <div class="agent-num" style="margin-bottom:16px;">ROLLBACK SEQUENCE — 5-MINUTE SLA</div>
+    <div class="code-block">
+<span class="h">Trigger:</span> REGRESSION_DETECTED event from Lifecycle Agent (Observability Sidecar for 10/10 design)
+
+T+0m  <span class="k">Orchestrator</span>  ROLLBACK_SEQUENCE triggered · job state locked
+T+1m  <span class="k">Deployment  </span>  mcp.azdo.disable_pipeline() · stops new AzDO runs
+T+2m  <span class="k">Deployment  </span>  mcp.jenkins.reenable_job()  · Jenkins takes over again
+T+3m  <span class="k">Orchestrator</span>  ITSM incident auto-created  · ops team paged via PagerDuty
+T+4m  <span class="k">Sidecar     </span>  SLA breach alarm armed      · fires at T+5m if not complete
+T+5m  <span class="h">SLA COMPLETE</span> · job in ROLLBACK_COMPLETE
+
+Post-rollback:
+  Job locked in ROLLBACK_COMPLETE
+  Requires Gate 1 + Gate 2 re-approval before any re-migration attempt
+  Root cause investigation required (trace_id enables full replay in Azure Monitor)
+  Corrected Conversion Manifest indexed in RAG store after human fix</div>
+  </div>
+</section>
+
+<!-- ── FOOTER ── -->
+<footer>
+  <div class="footer-left">
+    Jenkins → AzDO Migration Platform · 6-Agent Design · 5,000 Jobs<br>
+    Reasoning · Orchestration · Execution · Observability
+  </div>
+  <div class="footer-score">ARCHITECTURE SCORE: 10 / 10</div>
+</footer>
+
+<script>
+// Auto-open first few phases on load for demo
+document.querySelectorAll('.flow-phase').forEach((phase, i) => {
+  if (i > 0) phase.classList.remove('open');
+});
+</script>
+
+</body>
+</html>

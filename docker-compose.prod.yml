@@ -1,0 +1,109 @@
+version: "3.9"
+
+# =============================================================================
+# LV Migration Platform - Production Docker Compose
+# =============================================================================
+# Pre-built images from Docker Hub: prince243r3/lv-*
+#
+# QUICK START:
+# 1. Edit the environment variables below (LLM_API_KEY and JENKINS_MASTERS)
+# 2. Run: docker-compose -f docker-compose.prod.yml up -d
+# 3. Open: http://localhost:5173
+# =============================================================================
+
+services:
+
+  mcp-gateway:
+    image: prince243r3/lv-mcp-gateway:v1.0
+    container_name: lv-mcp-gateway
+    ports:
+      - "9000:9000"
+    environment:
+      # Environment
+      - ENVIRONMENT=demo
+
+      # Jenkins Configuration (EDIT THIS - Add your Jenkins details)
+      # Format: {"master_name":{"url":"http://jenkins-url:8080","user":"admin","token":"your-token","csrf_enabled":true}}
+      - JENKINS_MASTERS={"local":{"url":"http://host.docker.internal:8080","user":"admin","token":"YOUR_JENKINS_TOKEN_HERE","csrf_enabled":true}}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:9000/health')"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+    networks:
+      - lv-internal
+
+  backend:
+    image: prince243r3/lv-backend:v1.0
+    container_name: lv-backend
+    ports:
+      - "8000:8000"
+    environment:
+      # LLM Provider Configuration (EDIT THIS - Add your API key)
+      # Options: anthropic, openai, bedrock
+      - LLM_PROVIDER=anthropic
+      - LLM_API_KEY=sk-ant-api03-YOUR_API_KEY_HERE
+      - LLM_MODEL=claude-3-5-sonnet-20241022
+
+      # For AWS Bedrock (uncomment if using Bedrock):
+      # - LLM_PROVIDER=bedrock
+      # - BEDROCK_REGION=eu-west-2
+      # - BEDROCK_MODEL_ID=anthropic.claude-3-5-sonnet-20241022-v2:0
+
+      # For OpenAI (uncomment if using OpenAI):
+      # - LLM_PROVIDER=openai
+      # - LLM_API_KEY=sk-YOUR_OPENAI_KEY_HERE
+      # - LLM_MODEL=gpt-4
+
+      # Internal Configuration (DO NOT CHANGE)
+      - MCP_GATEWAY_URL=http://mcp-gateway:9000
+      - USE_AWS_SECRETS=false
+      - USE_DYNAMODB=false
+      - USE_SQS=false
+      - USE_REDIS=false
+      - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:80
+      - YAML_OUTPUT_DIR=/app/output/yaml
+      - TENANT_ID=lv-demo
+
+      # Jenkins Configuration (EDIT THIS - Same as above)
+      - JENKINS_MASTERS={"local":{"url":"http://host.docker.internal:8080","user":"admin","token":"YOUR_JENKINS_TOKEN_HERE","csrf_enabled":true}}
+    volumes:
+      - yaml_output:/app/output/yaml
+    depends_on:
+      mcp-gateway:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/v1/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    networks:
+      - lv-internal
+
+  frontend:
+    image: prince243r3/lv-frontend:v1.0
+    container_name: lv-frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      backend:
+        condition: service_healthy
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+    networks:
+      - lv-internal
+
+networks:
+  lv-internal:
+    driver: bridge
+
+volumes:
+  yaml_output:
+    driver: local

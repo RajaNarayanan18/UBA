@@ -1,0 +1,44 @@
+# Environment variables with secrets
+.env
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+*.egg-info/
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+dist/
+.vite/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Output
+output/
+*.log
+
+# Claude
+.claude/
+
+# Docker volumes
+data/
+redis_data/
+
+# Temporary files
+*.tmp
+*.bak
+.cache/

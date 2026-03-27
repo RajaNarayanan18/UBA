@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Jenkins → AzDO — Activity Diagram</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@300;400;500;600&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090f;
+  --surface: #0d1117;
+  --surface2: #111827;
+  --border: #1a2640;
+  --border2: #223052;
+  --accent: #e8ff47;
+  --blue: #3b82f6;
+  --cyan: #22d3ee;
+  --green: #34d399;
+  --amber: #fbbf24;
+  --red: #f87171;
+  --purple: #a78bfa;
+  --pink: #f472b6;
+  --teal: #2dd4bf;
+  --text: #e2e8f5;
+  --text2: #94a3b8;
+  --text3: #3d5270;
+
+  /* Agent colours */
+  --c-intake:    #34d399;
+  --c-registry:  #22d3ee;
+  --c-migration: #a78bfa;
+  --c-validator: #22d3ee;
+  --c-deploy:    #34d399;
+  --c-orch:      #fbbf24;
+  --c-gate:      #f87171;
+  --c-sidecar:   #e8ff47;
+
+  --mono: 'JetBrains Mono', monospace;
+  --display: 'Syne', sans-serif;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--mono);
+  font-size: 13px;
+  min-height: 100vh;
+  overflow-x: auto;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(232,255,71,0.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(232,255,71,0.025) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── HEADER ── */
+.header {
+  position: relative;
+  z-index: 2;
+  padding: 40px 60px 32px;
+  border-bottom: 1px solid var(--border2);
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 24px;
+}
+
+.header-left h1 {
+  font-family: var(--display);
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.5px;
+  line-height: 1;
+  margin-bottom: 8px;
+}
+.header-left h1 span { color: var(--accent); }
+.header-sub {
+  font-size: 11px;
+  color: var(--text3);
+  letter-spacing: 2px;
+  text-transform: uppercase;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+  align-items: center;
+}
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 10px;
+  color: var(--text2);
+  letter-spacing: 1px;
+}
+.legend-shape {
+  width: 28px; height: 16px;
+  border-radius: 3px;
+  flex-shrink: 0;
+}
+.legend-diamond {
+  width: 16px; height: 16px;
+  transform: rotate(45deg);
+  border-radius: 2px;
+  flex-shrink: 0;
+}
+.legend-circle {
+  width: 16px; height: 16px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.legend-pill {
+  width: 28px; height: 16px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+/* ── SWIM LANES ── */
+.diagram-wrapper {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  overflow-x: auto;
+  padding-bottom: 40px;
+}
+
+.lanes-container {
+  display: flex;
+  flex-direction: row;
+  min-width: 1400px;
+  width: 100%;
+}
+
+.lane {
+  flex: 1;
+  border-right: 1px solid var(--border2);
+  min-width: 180px;
+  position: relative;
+}
+.lane:last-child { border-right: none; }
+
+.lane-header {
+  padding: 16px 12px;
+  border-bottom: 2px solid;
+  text-align: center;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  background: var(--bg);
+}
+.lane-header .lane-num {
+  font-size: 9px;
+  letter-spacing: 3px;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+  opacity: 0.6;
+}
+.lane-header .lane-name {
+  font-family: var(--display);
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.5px;
+}
+
+.lane-intake    .lane-header { border-color: var(--c-intake);    color: var(--c-intake); }
+.lane-registry  .lane-header { border-color: var(--c-registry);  color: var(--c-registry); }
+.lane-migration .lane-header { border-color: var(--c-migration); color: var(--c-migration); }
+.lane-validator .lane-header { border-color: var(--c-validator); color: var(--c-validator); }
+.lane-orch      .lane-header { border-color: var(--c-orch);      color: var(--c-orch); }
+.lane-deploy    .lane-header { border-color: var(--c-deploy);    color: var(--c-deploy); }
+.lane-human     .lane-header { border-color: var(--c-gate);      color: var(--c-gate); }
+.lane-sidecar   .lane-header { border-color: var(--c-sidecar);   color: var(--c-sidecar); }
+
+.lane-body {
+  padding: 12px 8px;
+  min-height: 100px;
+}
+
+/* ── SVG DIAGRAM ── */
+.svg-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  overflow-x: auto;
+  padding: 20px 40px 60px;
+}
+
+svg {
+  display: block;
+  margin: 0 auto;
+}
+
+/* Node styles */
+.node-process rect {
+  rx: 6; ry: 6;
+}
+
+/* Tooltip */
+.tooltip {
+  position: fixed;
+  background: var(--surface2);
+  border: 1px solid var(--border2);
+  border-radius: 4px;
+  padding: 10px 14px;
+  font-size: 11px;
+  color: var(--text2);
+  pointer-events: none;
+  z-index: 1000;
+  max-width: 280px;
+  line-height: 1.6;
+  display: none;
+}
+.tooltip strong { color: var(--text); display: block; margin-bottom: 4px; }
+
+/* Phase labels */
+.phase-label {
+  position: absolute;
+  left: 0;
+  font-size: 9px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text3);
+  transform: rotate(-90deg);
+  transform-origin: left top;
+  white-space: nowrap;
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>ACTIVITY DIAGRAM — <span>SINGLE JOB FLOW</span></h1>
+    <div class="header-sub">Jenkins → Azure DevOps · 6-Agent Architecture · End-to-End</div>
+  </div>
+  <div class="legend">
+    <div class="legend-item">
+      <div class="legend-shape" style="background:rgba(52,211,153,0.2); border:1.5px solid #34d399;"></div>
+      Process / Action
+    </div>
+    <div class="legend-item">
+      <div class="legend-diamond" style="background:rgba(251,191,36,0.2); border:1.5px solid #fbbf24;"></div>
+      Decision
+    </div>
+    <div class="legend-item">
+      <div class="legend-pill" style="background:rgba(248,113,113,0.2); border:1.5px solid #f87171;"></div>
+      Human Gate
+    </div>
+    <div class="legend-item">
+      <div class="legend-circle" style="background:#e8ff47;"></div>
+      Start
+    </div>
+    <div class="legend-item">
+      <div class="legend-circle" style="background:transparent; border:3px solid #e8ff47; position:relative;">
+        <div style="position:absolute; inset:2px; background:#e8ff47; border-radius:50%;"></div>
+      </div>
+      End
+    </div>
+    <div class="legend-item">
+      <div class="legend-shape" style="background:rgba(232,255,71,0.1); border:1.5px dashed #e8ff47;"></div>
+      Event / Message
+    </div>
+  </div>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<div class="svg-container">
+<svg id="diagram" width="1560" height="4200" viewBox="0 0 1560 4200" xmlns="http://www.w3.org/2000/svg">
+<defs>
+  <!-- Arrow markers -->
+  <marker id="arrow" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#3d5270"/>
+  </marker>
+  <marker id="arrow-green" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#34d399"/>
+  </marker>
+  <marker id="arrow-red" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#f87171"/>
+  </marker>
+  <marker id="arrow-amber" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#fbbf24"/>
+  </marker>
+  <marker id="arrow-purple" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#a78bfa"/>
+  </marker>
+  <marker id="arrow-cyan" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#22d3ee"/>
+  </marker>
+  <marker id="arrow-accent" markerWidth="8" markerHeight="8" refX="6" refY="3" orient="auto">
+    <path d="M0,0 L0,6 L8,3 z" fill="#e8ff47"/>
+  </marker>
+
+  <!-- Glow filters -->
+  <filter id="glow-green" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="3" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+  <filter id="glow-amber" x="-20%" y="-20%" width="140%" height="140%">
+    <feGaussianBlur stdDeviation="2" result="blur"/>
+    <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+  </filter>
+</defs>
+
+<!-- ═══════════════════════════════════════════
+     SWIM LANE BACKGROUNDS
+════════════════════════════════════════════ -->
+<!-- Lane widths: each ~195px, 8 lanes = 1560 -->
+<!-- Intake:0-195  Registry:195-390  Migration:390-585  Validator:585-780  Orchestrator:780-975  Deployment:975-1170  Human:1170-1365  Sidecar:1365-1560 -->
+
+<rect x="0"    y="0" width="195" height="4200" fill="#0a1a12" opacity="0.4"/>
+<rect x="195"  y="0" width="195" height="4200" fill="#0a1520" opacity="0.4"/>
+<rect x="390"  y="0" width="195" height="4200" fill="#110a20" opacity="0.4"/>
+<rect x="585"  y="0" width="195" height="4200" fill="#0a1520" opacity="0.4"/>
+<rect x="780"  y="0" width="195" height="4200" fill="#1a1400" opacity="0.3"/>
+<rect x="975"  y="0" width="195" height="4200" fill="#0a1a12" opacity="0.4"/>
+<rect x="1170" y="0" width="195" height="4200" fill="#1a0a0a" opacity="0.4"/>
+<rect x="1365" y="0" width="195" height="4200" fill="#131108" opacity="0.3"/>
+
+<!-- Lane dividers -->
+<line x1="195"  y1="0" x2="195"  y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="390"  y1="0" x2="390"  y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="585"  y1="0" x2="585"  y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="780"  y1="0" x2="780"  y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="975"  y1="0" x2="975"  y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="1170" y1="0" x2="1170" y2="4200" stroke="#1a2640" stroke-width="1"/>
+<line x1="1365" y1="0" x2="1365" y2="4200" stroke="#1a2640" stroke-width="1"/>
+
+<!-- ═══════════════════════════════════════════
+     LANE HEADERS
+════════════════════════════════════════════ -->
+<rect x="0"    y="0" width="195" height="64" fill="#0d1a12"/>
+<rect x="195"  y="0" width="195" height="64" fill="#0d1520"/>
+<rect x="390"  y="0" width="195" height="64" fill="#14091e"/>
+<rect x="585"  y="0" width="195" height="64" fill="#0d1520"/>
+<rect x="780"  y="0" width="195" height="64" fill="#1c1500"/>
+<rect x="975"  y="0" width="195" height="64" fill="#0d1a12"/>
+<rect x="1170" y="0" width="195" height="64" fill="#1a0d0d"/>
+<rect x="1365" y="0" width="195" height="64" fill="#131208"/>
+
+<rect x="0"    y="62" width="195" height="2" fill="#34d399"/>
+<rect x="195"  y="62" width="195" height="2" fill="#22d3ee"/>
+<rect x="390"  y="62" width="195" height="2" fill="#a78bfa"/>
+<rect x="585"  y="62" width="195" height="2" fill="#22d3ee"/>
+<rect x="780"  y="62" width="195" height="2" fill="#fbbf24"/>
+<rect x="975"  y="62" width="195" height="2" fill="#34d399"/>
+<rect x="1170" y="62" width="195" height="2" fill="#f87171"/>
+<rect x="1365" y="62" width="195" height="2" fill="#e8ff47"/>
+
+<text x="97"   y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#34d399" opacity="0.7" letter-spacing="2">AGENT 01</text>
+<text x="292"  y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee" opacity="0.7" letter-spacing="2">AGENT 02</text>
+<text x="487"  y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#a78bfa" opacity="0.7" letter-spacing="2">AGENT 03</text>
+<text x="682"  y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee" opacity="0.7" letter-spacing="2">AGENT 04</text>
+<text x="877"  y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24" opacity="0.7" letter-spacing="2">AGENT 06</text>
+<text x="1072" y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#34d399" opacity="0.7" letter-spacing="2">AGENT 05</text>
+<text x="1267" y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171" opacity="0.7" letter-spacing="2">HUMAN GATES</text>
+<text x="1462" y="28" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47" opacity="0.7" letter-spacing="2">SIDECAR</text>
+
+<text x="97"   y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#34d399">INTAKE &amp; TRIAGE</text>
+<text x="292"  y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#22d3ee">KNOWLEDGE REG.</text>
+<text x="487"  y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#a78bfa">MIGRATION</text>
+<text x="682"  y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#22d3ee">VALIDATOR</text>
+<text x="877"  y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#fbbf24">ORCHESTRATOR</text>
+<text x="1072" y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#34d399">DEPLOYMENT</text>
+<text x="1267" y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#f87171">HUMAN GATES</text>
+<text x="1462" y="48" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="700" fill="#e8ff47">OBS. SIDECAR</text>
+
+<!-- ═══════════════════════════════════════════
+     PHASE BANDS
+════════════════════════════════════════════ -->
+<!-- Phase 0: PRE-MIGRATION 90–260 -->
+<rect x="0" y="90" width="1560" height="170" fill="rgba(34,211,153,0.02)" rx="0"/>
+<text x="8" y="107" font-family="'JetBrains Mono'" font-size="9" fill="#34d399" opacity="0.5" letter-spacing="2">PHASE 0 — PRE-MIGRATION</text>
+
+<!-- Phase 1: INTAKE 280–560 -->
+<rect x="0" y="278" width="1560" height="280" fill="rgba(52,211,153,0.02)" rx="0"/>
+<text x="8" y="294" font-family="'JetBrains Mono'" font-size="9" fill="#34d399" opacity="0.5" letter-spacing="2">PHASE 1 — INTAKE &amp; TRIAGE</text>
+
+<!-- Phase 2: ORCH ROUTE 580–700 -->
+<rect x="0" y="578" width="1560" height="120" fill="rgba(251,191,36,0.02)" rx="0"/>
+<text x="8" y="594" font-family="'JetBrains Mono'" font-size="9" fill="#fbbf24" opacity="0.5" letter-spacing="2">PHASE 2 — ORCHESTRATOR ROUTING</text>
+
+<!-- Phase 3: MIGRATION 720–1060 -->
+<rect x="0" y="718" width="1560" height="340" fill="rgba(167,139,250,0.02)" rx="0"/>
+<text x="8" y="734" font-family="'JetBrains Mono'" font-size="9" fill="#a78bfa" opacity="0.5" letter-spacing="2">PHASE 3 — MIGRATION (LLM)</text>
+
+<!-- Phase 4: GATE1 1080–1200 -->
+<rect x="0" y="1078" width="1560" height="120" fill="rgba(248,113,113,0.03)" rx="0"/>
+<text x="8" y="1094" font-family="'JetBrains Mono'" font-size="9" fill="#f87171" opacity="0.5" letter-spacing="2">PHASE 4 — HUMAN GATE 1 (HIGH+ RISK)</text>
+
+<!-- Phase 5: VALIDATION 1220–1560 -->
+<rect x="0" y="1218" width="1560" height="340" fill="rgba(34,211,238,0.02)" rx="0"/>
+<text x="8" y="1234" font-family="'JetBrains Mono'" font-size="9" fill="#22d3ee" opacity="0.5" letter-spacing="2">PHASE 5 — VALIDATION (3 PLANES)</text>
+
+<!-- Phase 6: GATE2 1580–1700 -->
+<rect x="0" y="1578" width="1560" height="120" fill="rgba(248,113,113,0.03)" rx="0"/>
+<text x="8" y="1594" font-family="'JetBrains Mono'" font-size="9" fill="#f87171" opacity="0.5" letter-spacing="2">PHASE 6 — HUMAN GATE 2 (MOD+ RISK)</text>
+
+<!-- Phase 7: SHADOW 1720–1920 -->
+<rect x="0" y="1718" width="1560" height="200" fill="rgba(52,211,153,0.02)" rx="0"/>
+<text x="8" y="1734" font-family="'JetBrains Mono'" font-size="9" fill="#34d399" opacity="0.5" letter-spacing="2">PHASE 7 — SHADOW DEPLOYMENT</text>
+
+<!-- Phase 8: PROD 1940–2140 -->
+<rect x="0" y="1938" width="1560" height="200" fill="rgba(52,211,153,0.03)" rx="0"/>
+<text x="8" y="1954" font-family="'JetBrains Mono'" font-size="9" fill="#34d399" opacity="0.5" letter-spacing="2">PHASE 8 — PRODUCTION DEPLOYMENT</text>
+
+<!-- Phase 9: MONITORING 2160–2480 -->
+<rect x="0" y="2158" width="1560" height="300" fill="rgba(251,191,36,0.02)" rx="0"/>
+<text x="8" y="2174" font-family="'JetBrains Mono'" font-size="9" fill="#fbbf24" opacity="0.5" letter-spacing="2">PHASE 9 — MONITORING &amp; DRIFT DETECTION</text>
+
+<!-- Phase 10: ROLLBACK 2480–2700 -->
+<rect x="0" y="2478" width="1560" height="220" fill="rgba(248,113,113,0.025)" rx="0"/>
+<text x="8" y="2494" font-family="'JetBrains Mono'" font-size="9" fill="#f87171" opacity="0.5" letter-spacing="2">PHASE 10 — ROLLBACK PATH</text>
+
+<!-- Phase 11: COMPLETE 2720+ -->
+<rect x="0" y="2718" width="1560" height="160" fill="rgba(232,255,71,0.02)" rx="0"/>
+<text x="8" y="2734" font-family="'JetBrains Mono'" font-size="9" fill="#e8ff47" opacity="0.5" letter-spacing="2">PHASE 11 — COMPLETE</text>
+
+<!-- ═══════════════════════════════════════════
+     NODES — Helper macros via groups
+     Positions: cx = lane center
+     Lane centers: 97, 292, 487, 682, 877, 1072, 1267, 1462
+════════════════════════════════════════════ -->
+
+<!-- ── START ── -->
+<circle cx="877" cy="110" r="16" fill="#e8ff47" filter="url(#glow-amber)"/>
+<text x="877" y="115" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" font-weight="600" fill="#07090f">START</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 0 — PRE-MIGRATION (Knowledge Registry)
+───────────────────────────────────────── -->
+
+<!-- Orch → triggers Registry population -->
+<line x1="877" y1="126" x2="877" y2="148" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<rect x="782" y="148" width="190" height="36" rx="5" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1.2"/>
+<text x="877" y="162" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fbbf24">Wave 0 Auth Trigger</text>
+<text x="877" y="175" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fbbf24">(Program Director JWT)</text>
+
+<!-- Registry: Scan plugins + libraries -->
+<line x1="877" y1="184" x2="292" y2="184" stroke="#3d5270" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+<rect x="197" y="195" width="190" height="36" rx="5" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="1.2"/>
+<text x="292" y="209" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#22d3ee">Scan all Jenkins jobs</text>
+<text x="292" y="222" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#22d3ee">Build plugin frequency map</text>
+
+<!-- Registry: LLM proposes mappings -->
+<line x1="292" y1="231" x2="292" y2="248" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<rect x="197" y="248" width="190" height="36" rx="5" fill="rgba(34,211,238,0.1)" stroke="#22d3ee" stroke-width="1.2"/>
+<text x="292" y="262" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#22d3ee">LLM proposes mappings</text>
+<text x="292" y="275" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#22d3ee">DIRECT / APPROX / NONE</text>
+
+<!-- Human Gate: Ratify mappings -->
+<line x1="292" y1="284" x2="1267" y2="284" stroke="#3d5270" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+<rect x="1172" y="248" width="190" height="72" rx="18" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1.5"/>
+<text x="1267" y="271" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171">HUMAN RATIFICATION</text>
+<text x="1267" y="284" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171">Platform engineer</text>
+<text x="1267" y="297" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171">approves mappings</text>
+<text x="1267" y="310" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171" opacity="0.7">APPROX + NONE only</text>
+
+<!-- Registry: Ratified → stored -->
+<line x1="1267" y1="320" x2="292" y2="320" stroke="#f87171" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-red)"/>
+<text x="780" y="315" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171" opacity="0.8">ratified</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 1 — INTAKE & TRIAGE
+───────────────────────────────────────── -->
+
+<!-- Drop to intake -->
+<line x1="292" y1="320" x2="97" y2="320" stroke="#3d5270" stroke-width="1.2" stroke-dasharray="4,3"/>
+<line x1="97" y1="320" x2="97" y2="310" stroke="#3d5270" stroke-width="1.2"/>
+<!-- Orch routes to intake -->
+<line x1="877" y1="184" x2="877" y2="310" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4,3"/>
+<line x1="877" y1="310" x2="97" y2="310" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow)"/>
+
+<!-- INTAKE: Fingerprint -->
+<rect x="14" y="328" width="166" height="40" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="97" y="344" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Fingerprint Job</text>
+<text x="97" y="358" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">sha256(config.xml + name)</text>
+
+<!-- Decision: Already exists? -->
+<line x1="97" y1="368" x2="97" y2="388" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<polygon points="97,388 130,408 97,428 64,408" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="97" y="404" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Duplicate</text>
+<text x="97" y="416" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">job_id?</text>
+
+<!-- YES → NO-OP -->
+<line x1="130" y1="408" x2="185" y2="408" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="156" y="403" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES</text>
+<rect x="185" y="396" width="60" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="215" y="412" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">NO-OP</text>
+
+<!-- NO → Build DAG -->
+<line x1="97" y1="428" x2="97" y2="448" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="108" y="442" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">NO</text>
+
+<!-- Build DAG -->
+<rect x="14" y="448" width="166" height="40" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="97" y="463" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Build Dependency DAG</text>
+<text x="97" y="477" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Cosmos DB Gremlin · DFS</text>
+
+<!-- Decision: Circular dep? -->
+<line x1="97" y1="488" x2="97" y2="508" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<polygon points="97,508 130,528 97,548 64,528" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="97" y="524" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Circular</text>
+<text x="97" y="536" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Dep?</text>
+
+<!-- YES → WAVE_5 -->
+<line x1="64" y1="528" x2="14" y2="528" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="38" y="523" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES</text>
+<rect x="0" y="516" width="14" height="24" rx="3" fill="rgba(248,113,113,0.15)" stroke="#f87171" stroke-width="1"/>
+<text x="7" y="524" text-anchor="middle" font-family="'JetBrains Mono'" font-size="7" fill="#f87171" transform="rotate(-90,7,528)">W5</text>
+
+<!-- NO → Risk Score -->
+<line x1="97" y1="548" x2="97" y2="568" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="108" y="562" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">NO</text>
+
+<!-- Risk Score -->
+<rect x="14" y="568" width="166" height="40" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="97" y="583" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Risk Score (0–100)</text>
+<text x="97" y="597" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Formula · Wave assign</text>
+
+<!-- Context Snapshot -->
+<line x1="97" y1="608" x2="97" y2="622" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<rect x="14" y="622" width="166" height="36" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="97" y="636" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Context Snapshot v1</text>
+<text x="97" y="649" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">sha256 composite hash</text>
+
+<!-- INTAKE_COMPLETE event -->
+<line x1="97" y1="658" x2="877" y2="658" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-green)"/>
+<rect x="400" y="646" width="174" height="20" rx="3" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="487" y="659" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">→ INTAKE_COMPLETE event</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 2 — ORCHESTRATOR ROUTING
+───────────────────────────────────────── -->
+
+<!-- Orch receives -->
+<rect x="782" y="668" width="190" height="40" rx="5" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="683" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#fbbf24">Verify HMAC · State Transition</text>
+<text x="877" y="697" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">INTAKE_PENDING → WAVE_ASSIGNED</text>
+
+<!-- Decision: Library ready? -->
+<line x1="877" y1="708" x2="877" y2="728" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<polygon points="877,728 914,748 877,768 840,748" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="744" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">@Library</text>
+<text x="877" y="756" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">MIGRATED?</text>
+
+<!-- NO → waiting state -->
+<line x1="914" y1="748" x2="1070" y2="748" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="990" y="743" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">NO</text>
+<rect x="1015" y="736" width="150" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="1090" y="751" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">AWAITING_LIBRARY ⏸</text>
+
+<!-- YES → Analysis requested -->
+<line x1="877" y1="768" x2="877" y2="788" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<text x="888" y="782" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">YES</text>
+<rect x="782" y="788" width="190" height="36" rx="3" fill="rgba(251,191,36,0.07)" stroke="#fbbf24" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="877" y="805" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">→ ANALYSIS_REQUESTED</text>
+<text x="877" y="818" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Service Bus → Migration Agent</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 3 — MIGRATION (LLM)
+───────────────────────────────────────── -->
+<line x1="877" y1="824" x2="487" y2="824" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-amber)"/>
+
+<!-- Pre-process -->
+<rect x="392" y="832" width="190" height="40" rx="5" fill="rgba(167,139,250,0.12)" stroke="#a78bfa" stroke-width="1.5"/>
+<text x="487" y="846" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#a78bfa">Deterministic Pre-Process</text>
+<text x="487" y="860" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">config.xml + Jenkinsfile → JSON</text>
+
+<!-- RAG retrieval -->
+<line x1="487" y1="872" x2="487" y2="888" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<rect x="392" y="888" width="190" height="36" rx="5" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="487" y="903" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#a78bfa">RAG: Retrieve similar</text>
+<text x="487" y="916" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">cosine sim &gt; 0.82 → inject</text>
+
+<!-- Registry lookup -->
+<line x1="487" y1="924" x2="487" y2="940" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<rect x="392" y="940" width="190" height="36" rx="5" fill="rgba(167,139,250,0.1)" stroke="#a78bfa" stroke-width="1.2"/>
+<text x="487" y="955" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#a78bfa">Registry Lookup</text>
+<text x="487" y="968" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Plugins + Library mappings</text>
+
+<!-- Decision: Plugin in registry? -->
+<line x1="487" y1="976" x2="487" y2="996" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<polygon points="487,996 522,1016 487,1036 452,1016" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="487" y="1012" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Plugin in</text>
+<text x="487" y="1024" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Registry?</text>
+
+<!-- NO → REGISTRY_MISS -->
+<line x1="522" y1="1016" x2="585" y2="1016" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="550" y="1011" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">NO</text>
+<rect x="585" y="1004" width="155" height="24" rx="3" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="662" y="1019" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">REGISTRY_MISS → KR notified</text>
+
+<!-- YES → Phase 1 LLM -->
+<line x1="487" y1="1036" x2="487" y2="1056" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<text x="498" y="1050" font-family="'JetBrains Mono'" font-size="8" fill="#a78bfa">YES</text>
+
+<!-- Phase 1: Migration Brief -->
+<rect x="392" y="1056" width="190" height="40" rx="5" fill="rgba(167,139,250,0.15)" stroke="#a78bfa" stroke-width="2"/>
+<text x="487" y="1071" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="600" fill="#a78bfa">LLM Phase 1</text>
+<text x="487" y="1085" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#c4b5fd">Produce Migration Brief</text>
+
+<!-- Decision: BLOCKING items? -->
+<line x1="487" y1="1096" x2="487" y2="1116" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<polygon points="487,1116 524,1136 487,1156 450,1136" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="487" y="1132" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">BLOCKING</text>
+<text x="487" y="1144" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">items?</text>
+
+<!-- YES → CONVERSION_BLOCKED -->
+<line x1="524" y1="1136" x2="1267" y2="1136" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="890" y="1131" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES → CONVERSION_BLOCKED</text>
+<rect x="1172" y="1124" width="190" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="1267" y="1139" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Human Queue ⏸</text>
+
+<!-- NO → Phase 2 -->
+<line x1="487" y1="1156" x2="487" y2="1176" stroke="#a78bfa" stroke-width="1.5" marker-end="url(#arrow-purple)"/>
+<text x="498" y="1170" font-family="'JetBrains Mono'" font-size="8" fill="#a78bfa">NO</text>
+
+<!-- Phase 2: YAML -->
+<rect x="392" y="1176" width="190" height="40" rx="5" fill="rgba(167,139,250,0.15)" stroke="#a78bfa" stroke-width="2"/>
+<text x="487" y="1191" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="600" fill="#a78bfa">LLM Phase 2</text>
+<text x="487" y="1205" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#c4b5fd">Produce YAML + Manifest</text>
+
+<!-- CONVERSION_COMPLETE event -->
+<line x1="487" y1="1216" x2="877" y2="1216" stroke="#a78bfa" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-purple)"/>
+<rect x="590" y="1204" width="180" height="20" rx="3" fill="rgba(167,139,250,0.08)" stroke="#a78bfa" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="680" y="1217" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#a78bfa">→ CONVERSION_COMPLETE</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 4 — HUMAN GATE 1
+───────────────────────────────────────── -->
+
+<!-- Orch checks risk -->
+<rect x="782" y="1226" width="190" height="36" rx="5" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="1241" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#fbbf24">Check risk tier</text>
+<text x="877" y="1255" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">LOW/MOD bypass Gate 1</text>
+
+<line x1="877" y1="1262" x2="877" y2="1278" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<polygon points="877,1278 912,1298 877,1318 842,1298" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="1294" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Risk</text>
+<text x="877" y="1306" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">HIGH+?</text>
+
+<!-- YES → Gate 1 -->
+<line x1="912" y1="1298" x2="1267" y2="1298" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+<text x="1090" y="1293" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES</text>
+<rect x="1172" y="1280" width="190" height="48" rx="18" fill="rgba(248,113,113,0.12)" stroke="#f87171" stroke-width="2"/>
+<text x="1267" y="1299" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171" font-weight="600">GATE 1</text>
+<text x="1267" y="1312" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Team Lead + Sec Arch</text>
+<text x="1267" y="1322" text-anchor="middle" font-family="'JetBrains Mono'" font-size="7" fill="#f87171" opacity="0.8">SLA: 2 business days</text>
+
+<!-- Gate 1 → JWT → Orch -->
+<line x1="1267" y1="1328" x2="877" y2="1328" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-amber)"/>
+<text x="1072" y="1323" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">signed JWT issued</text>
+
+<!-- NO or approved → Validation -->
+<line x1="877" y1="1318" x2="877" y2="1338" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<text x="888" y="1332" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">NO</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 5 — VALIDATION
+───────────────────────────────────────── -->
+
+<line x1="877" y1="1338" x2="682" y2="1338" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-cyan)"/>
+<rect x="782" y="1328" width="10" height="10" fill="none"/>
+
+<!-- Plane 1 Syntactic -->
+<rect x="587" y="1346" width="190" height="36" rx="5" fill="rgba(34,211,238,0.12)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="682" y="1361" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#22d3ee">Plane 1 — Syntactic</text>
+<text x="682" y="1374" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">YAML schema validation (DET)</text>
+
+<line x1="682" y1="1382" x2="682" y2="1402" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<polygon points="682,1402 715,1422 682,1442 649,1422" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="682" y="1418" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Schema</text>
+<text x="682" y="1430" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Pass?</text>
+
+<!-- Plane 2 Security -->
+<line x1="682" y1="1442" x2="682" y2="1462" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<text x="693" y="1456" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee">YES</text>
+<rect x="587" y="1462" width="190" height="36" rx="5" fill="rgba(34,211,238,0.12)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="682" y="1477" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#22d3ee">Plane 2 — Security</text>
+<text x="682" y="1490" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Secrets · RBAC · Forbidden (DET)</text>
+
+<line x1="682" y1="1498" x2="682" y2="1518" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<polygon points="682,1518 715,1538 682,1558 649,1538" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="682" y="1534" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Security</text>
+<text x="682" y="1546" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Pass?</text>
+
+<!-- BLOCKED path -->
+<line x1="715" y1="1538" x2="1267" y2="1538" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+<text x="990" y="1533" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">NO → FAILED_BLOCKED</text>
+<rect x="1172" y="1526" width="190" height="24" rx="4" fill="rgba(248,113,113,0.12)" stroke="#f87171" stroke-width="1.5"/>
+<text x="1267" y="1541" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Security Team Escalation 🔒</text>
+
+<!-- Plane 3 Semantic -->
+<line x1="682" y1="1558" x2="682" y2="1578" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<text x="693" y="1572" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee">YES</text>
+<rect x="587" y="1578" width="190" height="36" rx="5" fill="rgba(34,211,238,0.12)" stroke="#22d3ee" stroke-width="1.5"/>
+<text x="682" y="1593" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#22d3ee">Plane 3 — Semantic</text>
+<text x="682" y="1607" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">YAML vs Manifest alignment (LLM)</text>
+
+<line x1="682" y1="1614" x2="682" y2="1634" stroke="#22d3ee" stroke-width="1.5" marker-end="url(#arrow-cyan)"/>
+<polygon points="682,1634 715,1654 682,1674 649,1654" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="682" y="1650" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Semantic</text>
+<text x="682" y="1662" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Pass?</text>
+
+<!-- FIXABLE loop -->
+<line x1="649" y1="1654" x2="460" y2="1654" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arrow-amber)"/>
+<text x="550" y="1649" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">NO (fixable)</text>
+
+<rect x="392" y="1642" width="68" height="24" rx="3" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1"/>
+<text x="426" y="1657" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Fix cycle</text>
+<text x="426" y="1667" text-anchor="middle" font-family="'JetBrains Mono'" font-size="7" fill="#94a3b8">≤ 2 cycles</text>
+
+<!-- Fix cycle loops back to Migration Phase 2 -->
+<line x1="426" y1="1642" x2="426" y2="1205" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-amber)"/>
+<text x="436" y="1420" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24" transform="rotate(90,436,1420)">retry with fix instructions</text>
+
+<!-- Fix exhausted → human -->
+<line x1="460" y1="1654" x2="392" y2="1654" stroke="#3d5270" stroke-width="1.2"/>
+<line x1="392" y1="1654" x2="392" y2="1700" stroke="#3d5270" stroke-width="1.2" stroke-dasharray="3,2"/>
+<text x="360" y="1690" font-family="'JetBrains Mono'" font-size="7" fill="#f87171" transform="rotate(-90,360,1690)">3rd fail → human</text>
+
+<!-- VALIDATION_PASS event -->
+<line x1="682" y1="1674" x2="877" y2="1674" stroke="#22d3ee" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+<text x="780" y="1669" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee">VALIDATION_PASS →</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 6 — HUMAN GATE 2
+───────────────────────────────────────── -->
+<rect x="782" y="1682" width="190" height="36" rx="5" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="1697" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#fbbf24">Route to Gate 2</text>
+<text x="877" y="1710" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">All MODERATE+ risk tiers</text>
+
+<line x1="877" y1="1718" x2="1267" y2="1718" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+<rect x="1172" y="1700" width="190" height="56" rx="18" fill="rgba(248,113,113,0.12)" stroke="#f87171" stroke-width="2"/>
+<text x="1267" y="1722" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171" font-weight="600">GATE 2</text>
+<text x="1267" y="1735" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Team Lead + Change Mgr</text>
+<text x="1267" y="1748" text-anchor="middle" font-family="'JetBrains Mono'" font-size="7" fill="#f87171" opacity="0.8">YAML diff · Manifest · Shadow run</text>
+
+<line x1="1267" y1="1756" x2="877" y2="1756" stroke="#f87171" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-amber)"/>
+<text x="1072" y="1751" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">signed JWT → DEPLOYMENT_REQUESTED</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 7 — SHADOW DEPLOYMENT
+───────────────────────────────────────── -->
+<line x1="877" y1="1756" x2="1072" y2="1756" stroke="#fbbf24" stroke-width="1.5" stroke-dasharray="4,3" marker-end="url(#arrow-green)"/>
+<rect x="977" y="1764" width="190" height="40" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="1072" y="1779" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">4 Pre-conditions Check</text>
+<text x="1072" y="1793" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Pass · JWT · Quota · Circuit</text>
+
+<line x1="1072" y1="1804" x2="1072" y2="1820" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<rect x="977" y="1820" width="190" height="36" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="1072" y="1835" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Archive Jenkins Config</text>
+<text x="1072" y="1848" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">WORM blob — rollback source</text>
+
+<line x1="1072" y1="1856" x2="1072" y2="1872" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<rect x="977" y="1872" width="190" height="36" rx="5" fill="rgba(52,211,153,0.14)" stroke="#34d399" stroke-width="2"/>
+<text x="1072" y="1887" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="600" fill="#34d399">Shadow Deploy (non-prod)</text>
+<text x="1072" y="1900" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Run + artifact hash compare</text>
+
+<line x1="1072" y1="1908" x2="1072" y2="1928" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<polygon points="1072,1928 1105,1948 1072,1968 1039,1948" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="1072" y="1944" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Shadow</text>
+<text x="1072" y="1956" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Pass?</text>
+
+<!-- Shadow fail → human -->
+<line x1="1105" y1="1948" x2="1267" y2="1948" stroke="#f87171" stroke-width="1.2" marker-end="url(#arrow-red)"/>
+<text x="1185" y="1943" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">FAIL</text>
+<rect x="1172" y="1936" width="190" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="1267" y="1951" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Human Review Queue</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 8 — PRODUCTION DEPLOY
+───────────────────────────────────────── -->
+<line x1="1072" y1="1968" x2="1072" y2="1988" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="1083" y="1982" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">PASS</text>
+
+<rect x="977" y="1988" width="190" height="36" rx="5" fill="rgba(52,211,153,0.12)" stroke="#34d399" stroke-width="1.5"/>
+<text x="1072" y="2003" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#34d399">Idempotency Check</text>
+<text x="1072" y="2017" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Same content hash exists?</text>
+
+<line x1="1072" y1="2024" x2="1072" y2="2044" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<polygon points="1072,2044 1105,2064 1072,2084 1039,2064" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="1072" y="2060" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Pipeline</text>
+<text x="1072" y="2072" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Exists?</text>
+
+<!-- Already exists → return id -->
+<line x1="1105" y1="2064" x2="1350" y2="2064" stroke="#22d3ee" stroke-width="1.2" marker-end="url(#arrow-cyan)"/>
+<text x="1228" y="2059" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#22d3ee">YES → return existing ID</text>
+
+<!-- ★★★ THE CRITICAL MOMENT ★★★ -->
+<line x1="1072" y1="2084" x2="1072" y2="2104" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="1083" y="2098" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">NO</text>
+
+<rect x="967" y="2104" width="210" height="52" rx="6" fill="rgba(52,211,153,0.18)" stroke="#34d399" stroke-width="2.5" filter="url(#glow-green)"/>
+<text x="1072" y="2124" text-anchor="middle" font-family="'Syne'" font-size="13" font-weight="800" fill="#34d399">mcp.azdo.create_pipeline()</text>
+<text x="1072" y="2142" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#94a3b8">★ AzDO PIPELINE CREATED ★</text>
+
+<!-- Jenkins READ_ONLY -->
+<line x1="1072" y1="2156" x2="1072" y2="2172" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<rect x="977" y="2172" width="190" height="36" rx="5" fill="rgba(52,211,153,0.1)" stroke="#34d399" stroke-width="1.5"/>
+<text x="1072" y="2187" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#34d399">Jenkins → READ_ONLY</text>
+<text x="1072" y="2200" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">(NOT decommissioned yet)</text>
+
+<!-- DEPLOYMENT_SUCCESS event -->
+<line x1="1072" y1="2208" x2="877" y2="2208" stroke="#34d399" stroke-width="1.5" stroke-dasharray="5,3" marker-end="url(#arrow-amber)"/>
+<rect x="900" y="2196" width="148" height="20" rx="3" fill="rgba(52,211,153,0.08)" stroke="#34d399" stroke-width="1" stroke-dasharray="3,2"/>
+<text x="974" y="2209" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">→ DEPLOYMENT_SUCCESS</text>
+
+<!-- Sidecar observes -->
+<line x1="1072" y1="2130" x2="1462" y2="2130" stroke="#e8ff47" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-accent)"/>
+<text x="1280" y="2124" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47" opacity="0.7">observes</text>
+<rect x="1367" y="2116" width="190" height="28" rx="4" fill="rgba(232,255,71,0.07)" stroke="#e8ff47" stroke-width="1"/>
+<text x="1462" y="2134" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47">Deploy event logged</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 9 — MONITORING & DRIFT
+───────────────────────────────────────── -->
+<rect x="782" y="2218" width="190" height="36" rx="5" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="2233" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#fbbf24">State: OBSERVATION_WINDOW</text>
+<text x="877" y="2247" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Register AzDO webhooks</text>
+
+<!-- 30-day monitoring -->
+<line x1="877" y1="2254" x2="877" y2="2270" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<rect x="782" y="2270" width="190" height="36" rx="5" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="2285" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#fbbf24">30-day Webhook Monitoring</text>
+<text x="877" y="2299" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">AzDO push events (not polling)</text>
+
+<!-- Nightly drift -->
+<line x1="877" y1="2306" x2="877" y2="2322" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<rect x="782" y="2322" width="190" height="36" rx="5" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1.2"/>
+<text x="877" y="2337" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#fbbf24">Nightly Drift Detection</text>
+<text x="877" y="2350" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Recompute context_hash</text>
+
+<!-- Drift decision -->
+<line x1="877" y1="2358" x2="877" y2="2378" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<polygon points="877,2378 912,2398 877,2418 842,2398" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="2394" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Drift</text>
+<text x="877" y="2406" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Detected?</text>
+
+<!-- Drift YES -->
+<line x1="912" y1="2398" x2="1267" y2="2398" stroke="#f87171" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-red)"/>
+<text x="1090" y="2393" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES → POST_DEPLOY_DRIFT_ALERT</text>
+<rect x="1172" y="2386" width="190" height="24" rx="4" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1"/>
+<text x="1267" y="2401" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">Human decision required</text>
+
+<!-- Regression decision -->
+<line x1="877" y1="2418" x2="877" y2="2438" stroke="#fbbf24" stroke-width="1.5" marker-end="url(#arrow-amber)"/>
+<text x="888" y="2432" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">NO</text>
+<polygon points="877,2438 912,2458 877,2478 842,2458" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="2454" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Regression</text>
+<text x="877" y="2466" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Detected?</text>
+
+<!-- Sidecar observes monitoring -->
+<line x1="877" y1="2285" x2="1462" y2="2285" stroke="#e8ff47" stroke-width="1" stroke-dasharray="3,3" marker-end="url(#arrow-accent)"/>
+<rect x="1367" y="2273" width="190" height="28" rx="4" fill="rgba(232,255,71,0.07)" stroke="#e8ff47" stroke-width="1"/>
+<text x="1462" y="2285" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47">Health metrics tracked</text>
+<text x="1462" y="2296" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47" opacity="0.7">SLA alerts armed</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 10 — ROLLBACK PATH
+───────────────────────────────────────── -->
+<!-- YES → Rollback -->
+<line x1="912" y1="2458" x2="1072" y2="2458" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+<text x="990" y="2453" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">YES</text>
+
+<rect x="977" y="2466" width="190" height="36" rx="5" fill="rgba(248,113,113,0.12)" stroke="#f87171" stroke-width="1.5"/>
+<text x="1072" y="2481" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#f87171">mcp.azdo.disable_pipeline()</text>
+<text x="1072" y="2494" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">T+2min · stops new runs</text>
+
+<line x1="1072" y1="2502" x2="1072" y2="2518" stroke="#f87171" stroke-width="1.5" marker-end="url(#arrow-red)"/>
+<rect x="977" y="2518" width="190" height="36" rx="5" fill="rgba(248,113,113,0.12)" stroke="#f87171" stroke-width="1.5"/>
+<text x="1072" y="2533" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#f87171">mcp.jenkins.reenable_job()</text>
+<text x="1072" y="2547" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">T+3min · Jenkins takes over</text>
+
+<line x1="1072" y1="2554" x2="1267" y2="2554" stroke="#f87171" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-red)"/>
+<rect x="1172" y="2542" width="190" height="36" rx="5" fill="rgba(248,113,113,0.1)" stroke="#f87171" stroke-width="1.5"/>
+<text x="1267" y="2557" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#f87171">ITSM Incident Created</text>
+<text x="1267" y="2570" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">PagerDuty · T+4min</text>
+
+<!-- Rollback terminal -->
+<rect x="977" y="2582" width="190" height="32" rx="6" fill="rgba(248,113,113,0.08)" stroke="#f87171" stroke-width="2"/>
+<text x="1072" y="2600" text-anchor="middle" font-family="'JetBrains Mono'" font-size="10" fill="#f87171">ROLLBACK_COMPLETE</text>
+<text x="1072" y="2611" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Gate 1+2 re-approval required</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE 11 — COMPLETE
+───────────────────────────────────────── -->
+
+<!-- NO regression → healthy check -->
+<line x1="877" y1="2478" x2="877" y2="2498" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="888" y="2492" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">NO</text>
+
+<polygon points="877,2498 912,2518 877,2538 842,2518" fill="rgba(251,191,36,0.12)" stroke="#fbbf24" stroke-width="1.5"/>
+<text x="877" y="2514" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">30-day clean</text>
+<text x="877" y="2526" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">window met?</text>
+
+<!-- Not yet → loop back to monitoring -->
+<line x1="840" y1="2518" x2="760" y2="2518" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4,3"/>
+<line x1="760" y1="2518" x2="760" y2="2285" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="4,3" marker-end="url(#arrow-amber)"/>
+<text x="750" y="2400" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24" transform="rotate(90,750,2400)">continue monitoring</text>
+
+<!-- YES → Complete -->
+<line x1="877" y1="2538" x2="877" y2="2558" stroke="#34d399" stroke-width="1.5" marker-end="url(#arrow-green)"/>
+<text x="888" y="2552" font-family="'JetBrains Mono'" font-size="8" fill="#34d399">YES</text>
+
+<rect x="782" y="2558" width="190" height="36" rx="5" fill="rgba(232,255,71,0.1)" stroke="#e8ff47" stroke-width="1.5"/>
+<text x="877" y="2573" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="500" fill="#e8ff47">Migration Record Sealed</text>
+<text x="877" y="2587" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Audit log finalized · RAG indexed</text>
+
+<!-- END -->
+<line x1="877" y1="2594" x2="877" y2="2618" stroke="#e8ff47" stroke-width="1.5" marker-end="url(#arrow-accent)"/>
+<circle cx="877" cy="2638" r="20" fill="none" stroke="#e8ff47" stroke-width="3"/>
+<circle cx="877" cy="2638" r="12" fill="#e8ff47"/>
+<text x="877" y="2642" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" font-weight="600" fill="#07090f">END</text>
+
+<!-- ─────────────────────────────────────────
+     SIDECAR PASSIVE OBSERVATIONS
+───────────────────────────────────────── -->
+<rect x="1367" y="2560" width="190" height="36" rx="5" fill="rgba(232,255,71,0.08)" stroke="#e8ff47" stroke-width="1"/>
+<text x="1462" y="2575" text-anchor="middle" font-family="'JetBrains Mono'" font-size="9" fill="#e8ff47">Real-time Dashboard</text>
+<text x="1462" y="2589" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">All events · All agents</text>
+<line x1="1462" y1="2560" x2="1462" y2="2130" stroke="#e8ff47" stroke-width="1" stroke-dasharray="2,4" opacity="0.5"/>
+
+<!-- ─────────────────────────────────────────
+     PLANE 1 + 2 FAIL PATHS (fixable)
+───────────────────────────────────────── -->
+<!-- Plane 1 fail → fix loop -->
+<line x1="649" y1="1422" x2="570" y2="1422" stroke="#fbbf24" stroke-width="1.2" marker-end="url(#arrow-amber)"/>
+<text x="600" y="1416" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">FAIL</text>
+<rect x="490" y="1410" width="80" height="24" rx="3" fill="rgba(251,191,36,0.1)" stroke="#fbbf24" stroke-width="1"/>
+<text x="530" y="1425" text-anchor="middle" font-family="'JetBrains Mono'" font-size="8" fill="#fbbf24">Fix cycle</text>
+<line x1="490" y1="1422" x2="390" y2="1422" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,2" marker-end="url(#arrow-purple)"/>
+<line x1="390" y1="1422" x2="390" y2="1195" stroke="#fbbf24" stroke-width="1.2" stroke-dasharray="3,2"/>
+
+<!-- ─────────────────────────────────────────
+     WAVE CIRCUIT BREAKER CALLOUT
+───────────────────────────────────────── -->
+<rect x="14" y="2190" width="350" height="70" rx="5" fill="rgba(248,113,113,0.06)" stroke="#f87171" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="26" y="2210" font-family="'JetBrains Mono'" font-size="9" fill="#f87171">⚡ WAVE CIRCUIT BREAKER</text>
+<text x="26" y="2226" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">If &gt;8% of wave jobs fail within 4hr window:</text>
+<text x="26" y="2241" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">→ Wave pauses instantly</text>
+<text x="26" y="2254" font-family="'JetBrains Mono'" font-size="8" fill="#f87171">→ Deployment quota = 0</text>
+
+<rect x="14" y="2270" width="350" height="56" rx="5" fill="rgba(232,255,71,0.04)" stroke="#e8ff47" stroke-width="1" stroke-dasharray="4,3"/>
+<text x="26" y="2290" font-family="'JetBrains Mono'" font-size="9" fill="#e8ff47">🔑 KILL SWITCH</text>
+<text x="26" y="2306" font-family="'JetBrains Mono'" font-size="8" fill="#94a3b8">Single API Gateway toggle disables</text>
+<text x="26" y="2320" font-family="'JetBrains Mono'" font-size="8" fill="#e8ff47">ALL write tool calls instantly · zero redeploy</text>
+
+<!-- ─────────────────────────────────────────
+     PHASE SEPARATOR LINES
+───────────────────────────────────────── -->
+<line x1="0" y1="278" x2="1560" y2="278" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="578" x2="1560" y2="578" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="718" x2="1560" y2="718" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="1078" x2="1560" y2="1078" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="1218" x2="1560" y2="1218" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="1578" x2="1560" y2="1578" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="1718" x2="1560" y2="1718" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="1938" x2="1560" y2="1938" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="2158" x2="1560" y2="2158" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="2478" x2="1560" y2="2478" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+<line x1="0" y1="2718" x2="1560" y2="2718" stroke="#1a2640" stroke-width="1" stroke-dasharray="2,6"/>
+
+</svg>
+</div>
+
+<!-- Footer -->
+<div style="position:relative; z-index:2; padding:24px 60px; border-top:1px solid #1a2640; display:flex; justify-content:space-between; align-items:center;">
+  <div style="font-family:'JetBrains Mono'; font-size:10px; color:#3d5270; letter-spacing:2px; text-transform:uppercase;">
+    Jenkins → AzDO Migration · 6-Agent Architecture · Activity Diagram · Single Job Flow
+  </div>
+  <div style="display:flex; gap:24px; font-family:'JetBrains Mono'; font-size:10px; color:#3d5270;">
+    <span style="color:#34d399;">■ Intake & Triage</span>
+    <span style="color:#22d3ee;">■ Knowledge Reg / Validator</span>
+    <span style="color:#a78bfa;">■ Migration</span>
+    <span style="color:#fbbf24;">■ Orchestrator</span>
+    <span style="color:#34d399;">■ Deployment</span>
+    <span style="color:#f87171;">■ Human Gates</span>
+    <span style="color:#e8ff47;">■ Sidecar</span>
+  </div>
+</div>
+
+</body>
+</html>

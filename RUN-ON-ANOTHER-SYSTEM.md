@@ -48,8 +48,8 @@ version: "3.9"
 
 services:
   mcp-gateway:
-    image: prince243r3/lv-mcp-gateway:v1.0
-    container_name: lv-mcp-gateway
+    image: prince243r3/mcp-gateway:v1.0
+    container_name: mcp-gateway
     ports:
       - "9000:9000"
     environment:
@@ -57,11 +57,11 @@ services:
       - JENKINS_MASTERS={"local":{"url":"http://host.docker.internal:8080","user":"admin","token":"YOUR_JENKINS_TOKEN","csrf_enabled":true}}
     restart: unless-stopped
     networks:
-      - lv-internal
+      - platform-internal
 
   backend:
-    image: prince243r3/lv-backend:v1.0
-    container_name: lv-backend
+    image: prince243r3/backend:v1.0
+    container_name: backend
     ports:
       - "8000:8000"
     environment:
@@ -75,7 +75,7 @@ services:
       - USE_REDIS=false
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:80
       - YAML_OUTPUT_DIR=/app/output/yaml
-      - TENANT_ID=lv-demo
+      - TENANT_ID=demo
       - JENKINS_MASTERS={"local":{"url":"http://host.docker.internal:8080","user":"admin","token":"YOUR_JENKINS_TOKEN","csrf_enabled":true}}
     volumes:
       - yaml_output:/app/output/yaml
@@ -83,21 +83,21 @@ services:
       - mcp-gateway
     restart: unless-stopped
     networks:
-      - lv-internal
+      - platform-internal
 
   frontend:
-    image: prince243r3/lv-frontend:v1.0
-    container_name: lv-frontend
+    image: prince243r3/frontend:v1.0
+    container_name: frontend
     ports:
       - "5173:80"
     depends_on:
       - backend
     restart: unless-stopped
     networks:
-      - lv-internal
+      - platform-internal
 
 networks:
-  lv-internal:
+  platform-internal:
     driver: bridge
 
 volumes:
@@ -154,9 +154,9 @@ docker-compose -f docker-compose.prod.yml up -d
 ```
 Creating network ... done
 Creating volume ... done
-Creating lv-mcp-gateway ... done
-Creating lv-backend     ... done
-Creating lv-frontend    ... done
+Creating mcp-gateway ... done
+Creating backend     ... done
+Creating frontend    ... done
 ```
 
 **Time:** ~30 seconds
@@ -448,9 +448,9 @@ docker-compose -f docker-compose.prod.yml up -d
 ## 📦 What Gets Downloaded
 
 When you run `pull`:
-- **prince243r3/lv-frontend:v1.0** - 26 MB (React UI)
-- **prince243r3/lv-backend:v1.0** - 119 MB (FastAPI + Agents)
-- **prince243r3/lv-mcp-gateway:v1.0** - 87 MB (Security Gateway)
+- **prince243r3/frontend:v1.0** - 26 MB (React UI)
+- **prince243r3/backend:v1.0** - 119 MB (FastAPI + Agents)
+- **prince243r3/mcp-gateway:v1.0** - 87 MB (Security Gateway)
 
 **Total:** ~232 MB (one-time download)
 

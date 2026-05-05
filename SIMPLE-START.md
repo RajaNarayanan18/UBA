@@ -1,4 +1,4 @@
-# 🚀 LV Migration Platform - Quick Start (3 Steps)
+# 🚀 Migration Platform - Quick Start (3 Steps)
 
 ## Prerequisites
 - Docker Desktop installed: https://www.docker.com/products/docker-desktop

@@ -1,9 +1,9 @@
 version: "3.9"
 
 # =============================================================================
-# LV Migration Platform - Production Docker Compose
+# Migration Platform - Production Docker Compose
 # =============================================================================
-# Pre-built images from Docker Hub: prince243r3/lv-*
+# Pre-built images from Docker Hub: prince243r3/*
 #
 # QUICK START:
 # 1. Edit the environment variables below (LLM_API_KEY and JENKINS_MASTERS)
@@ -14,8 +14,8 @@ version: "3.9"
 services:
 
   mcp-gateway:
-    image: prince243r3/lv-mcp-gateway:v1.0
-    container_name: lv-mcp-gateway
+    image: prince243r3/mcp-gateway:v1.0
+    container_name: mcp-gateway
     ports:
       - "9000:9000"
     environment:
@@ -32,11 +32,11 @@ services:
       timeout: 5s
       retries: 3
     networks:
-      - lv-internal
+      - platform-internal
 
   backend:
-    image: prince243r3/lv-backend:v1.0
-    container_name: lv-backend
+    image: prince243r3/backend:v1.0
+    container_name: backend
     ports:
       - "8000:8000"
     environment:
@@ -64,7 +64,7 @@ services:
       - USE_REDIS=false
       - CORS_ORIGINS=http://localhost:5173,http://localhost:3000,http://localhost:80
       - YAML_OUTPUT_DIR=/app/output/yaml
-      - TENANT_ID=lv-demo
+      - TENANT_ID=demo
 
       # Jenkins Configuration (EDIT THIS - Same as above)
       - JENKINS_MASTERS={"local":{"url":"http://host.docker.internal:8080","user":"admin","token":"YOUR_JENKINS_TOKEN_HERE","csrf_enabled":true}}
@@ -81,11 +81,11 @@ services:
       retries: 3
       start_period: 40s
     networks:
-      - lv-internal
+      - platform-internal
 
   frontend:
-    image: prince243r3/lv-frontend:v1.0
-    container_name: lv-frontend
+    image: prince243r3/frontend:v1.0
+    container_name: frontend
     ports:
       - "5173:80"
     depends_on:
@@ -98,10 +98,10 @@ services:
       timeout: 3s
       retries: 3
     networks:
-      - lv-internal
+      - platform-internal
 
 networks:
-  lv-internal:
+  platform-internal:
     driver: bridge
 
 volumes:

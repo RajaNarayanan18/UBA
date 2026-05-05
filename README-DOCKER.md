@@ -1,4 +1,4 @@
-# LV Migration Platform - Docker Deployment Guide
+# Migration Platform - Docker Deployment Guide
 
 **Jenkins to Azure DevOps Migration Platform - Production-Ready Demo**
 
@@ -17,7 +17,7 @@
 ## 📦 Deployment Steps
 
 ### Step 1: Download Package
-Extract the `lv-migration-platform.zip` to your working directory.
+Extract the `migration-platform.zip` to your working directory.
 
 ### Step 2: Configure Environment
 ```bash
@@ -195,12 +195,12 @@ docker-compose -f docker-compose.prod.yml ps
 
 ### Components
 
-**Frontend Container** (`lv-frontend`)
+**Frontend Container** (`frontend`)
 - React 18 + Vite + Tailwind CSS
 - nginx static file server
 - Responsive UI with real-time updates
 
-**Backend Container** (`lv-backend`)
+**Backend Container** (`backend`)
 - FastAPI async framework
 - 6 specialized agents:
   - **Agent 1**: Intake & risk scoring (deterministic, no LLM)
@@ -212,7 +212,7 @@ docker-compose -f docker-compose.prod.yml ps
 - In-memory stores (session, job, plugin)
 - Background task processing
 
-**MCP Gateway Container** (`lv-mcp-gateway`)
+**MCP Gateway Container** (`mcp-gateway`)
 - Centralized security & control layer
 - **Kill switch**: Emergency halt for all operations
 - Audit logging (ALLOWED/DENIED decisions)
@@ -257,7 +257,7 @@ Located in Docker volume `yaml_output`:
 docker-compose -f docker-compose.prod.yml exec backend ls -la /app/output/yaml
 
 # Copy to host
-docker cp lv-backend:/app/output/yaml ./generated-yamls
+docker cp backend:/app/output/yaml ./generated-yamls
 ```
 
 ### Session Data
@@ -335,7 +335,7 @@ backend:
 
 ## 📄 License & Credits
 
-**LV Migration Platform**
+**Migration Platform**
 Jenkins to Azure DevOps Migration Suite
 © 2026 - Internal Use Only
 
